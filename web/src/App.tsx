@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Terminal, useTerminal } from './components/Terminal/Terminal';
 import { TerminalToolbar, type DisplayMode } from './components/Terminal/TerminalToolbar';
+import { SearchBar } from './components/Terminal/SearchBar';
 import { HexViewer, useHexViewer } from './components/HexViewer/HexViewer';
 import { PortSelector } from './components/PortSelector/PortSelector';
 import { wsClient } from './services/websocket';
@@ -14,7 +15,8 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [status, setStatus] = useState('Disconnected');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('terminal');
-  const { write, clear } = useTerminal();
+  const [searchVisible, setSearchVisible] = useState(false);
+  const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
   const hexViewer = useHexViewer();
   const logger = useLogger();
 
@@ -69,9 +71,20 @@ function App() {
       }
     });
 
+    // Keyboard shortcut for search (Ctrl+F)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        setSearchVisible(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       unsubscribe();
       wsClient.disconnect();
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []); // Empty dependency array to run only once
 
@@ -94,6 +107,18 @@ function App() {
   const handleClearDisplay = () => {
     clear();
     hexViewer.clear();
+  };
+
+  const handleToggleSearch = () => {
+    setSearchVisible(!searchVisible);
+    if (searchVisible) {
+      clearSearch();
+    }
+  };
+
+  const handleSearchClose = () => {
+    setSearchVisible(false);
+    clearSearch();
   };
 
   return (
@@ -129,7 +154,16 @@ function App() {
             logCount={logger.logCount}
             displayMode={displayMode}
             onDisplayModeChange={setDisplayMode}
+            onToggleSearch={handleToggleSearch}
           />
+          {displayMode === 'terminal' && (
+            <SearchBar
+              visible={searchVisible}
+              onFindNext={findNext}
+              onFindPrevious={findPrevious}
+              onClose={handleSearchClose}
+            />
+          )}
           {displayMode === 'terminal' ? (
             <Terminal onData={handleTerminalData} />
           ) : (

@@ -14,6 +14,7 @@ interface TerminalToolbarProps {
   logCount: number;
   displayMode: DisplayMode;
   onDisplayModeChange: (mode: DisplayMode) => void;
+  onToggleSearch: () => void;
 }
 
 export function TerminalToolbar({
@@ -26,6 +27,7 @@ export function TerminalToolbar({
   logCount,
   displayMode,
   onDisplayModeChange,
+  onToggleSearch,
 }: TerminalToolbarProps) {
   const [showFormatMenu, setShowFormatMenu] = useState(false);
 
@@ -56,6 +58,13 @@ export function TerminalToolbar({
 
       <div className="toolbar-section">
         <span className="toolbar-label">Controls:</span>
+        <button
+          className="toolbar-btn"
+          onClick={onToggleSearch}
+          title="Search in terminal (Ctrl+F)"
+        >
+          🔍 Search
+        </button>
         <button
           className="toolbar-btn"
           onClick={onClearTerminal}

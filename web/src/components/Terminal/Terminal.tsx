@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { SearchAddon } from '@xterm/addon-search';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
@@ -12,6 +13,7 @@ export function Terminal({ onData, onResize }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const searchAddonRef = useRef<SearchAddon | null>(null);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -34,6 +36,10 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
 
+    // Create search addon
+    const searchAddon = new SearchAddon();
+    xterm.loadAddon(searchAddon);
+
     // Open terminal
     xterm.open(terminalRef.current);
     fitAddon.fit();
@@ -55,6 +61,7 @@ export function Terminal({ onData, onResize }: TerminalProps) {
 
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
+    searchAddonRef.current = searchAddon;
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -62,12 +69,17 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     };
   }, [onData, onResize]);
 
-  // Expose write method
+  // Expose terminal methods
   useEffect(() => {
-    if (xtermRef.current) {
+    if (xtermRef.current && searchAddonRef.current) {
       (window as any).__terminal = {
         write: (data: string) => xtermRef.current?.write(data),
         clear: () => xtermRef.current?.clear(),
+        findNext: (term: string, caseSensitive?: boolean) =>
+          searchAddonRef.current?.findNext(term, { caseSensitive }),
+        findPrevious: (term: string, caseSensitive?: boolean) =>
+          searchAddonRef.current?.findPrevious(term, { caseSensitive }),
+        clearSearch: () => searchAddonRef.current?.clearDecorations(),
       };
     }
   }, []);
@@ -93,5 +105,17 @@ export function useTerminal() {
     (window as any).__terminal?.clear();
   };
 
-  return { write, clear };
+  const findNext = (term: string, caseSensitive = false) => {
+    return (window as any).__terminal?.findNext(term, caseSensitive);
+  };
+
+  const findPrevious = (term: string, caseSensitive = false) => {
+    return (window as any).__terminal?.findPrevious(term, caseSensitive);
+  };
+
+  const clearSearch = () => {
+    (window as any).__terminal?.clearSearch();
+  };
+
+  return { write, clear, findNext, findPrevious, clearSearch };
 }
