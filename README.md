@@ -127,7 +127,9 @@ fluxterm/
 
 ## 라이선스
 
-MIT
+MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+Copyright (c) 2026 HUCONN Corporation
 
 ## 기여
 
