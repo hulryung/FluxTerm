@@ -1,4 +1,4 @@
-# GoTerm
+# FluxTerm
 
 웹 기반 시리얼/SSH 터미널 클라이언트 (SecureCRT/TeraTerm 대체)
 
@@ -30,15 +30,15 @@ make build
 make build
 
 # 수동 빌드
-go build -o goterm ./cmd/goterm
+go build -o fluxterm ./cmd/fluxterm
 ```
 
 ### 실행
 ```bash
-./goterm
+./fluxterm
 
 # 또는 환경변수로 설정
-HOST=0.0.0.0 PORT=8080 ./goterm
+HOST=0.0.0.0 PORT=8080 ./fluxterm
 ```
 
 서버가 시작되면:
@@ -103,8 +103,8 @@ ws.onmessage = (event) => {
 ## 프로젝트 구조
 
 ```
-go-serial/
-├── cmd/goterm/          # 메인 애플리케이션
+fluxterm/
+├── cmd/fluxterm/        # 메인 애플리케이션
 ├── internal/
 │   ├── api/             # REST API 및 라우터
 │   ├── core/

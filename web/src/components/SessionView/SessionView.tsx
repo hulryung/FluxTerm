@@ -4,6 +4,7 @@ import { TerminalToolbar, type DisplayMode } from '../Terminal/TerminalToolbar';
 import { SearchBar } from '../Terminal/SearchBar';
 import { HexViewer, useHexViewer } from '../HexViewer/HexViewer';
 import { PortSelector } from '../PortSelector/PortSelector';
+import { SSHConnector, type SSHConfig } from '../SSHConnector/SSHConnector';
 import { MacroManager } from '../MacroManager/MacroManager';
 import { FileTransfer, type FileTransferProgress } from '../FileTransfer/FileTransfer';
 import { wsClient } from '../../services/websocket';

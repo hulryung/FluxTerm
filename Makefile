@@ -1,8 +1,8 @@
 .PHONY: build run clean test tidy
 
 # Build configuration
-BINARY_NAME=goterm
-MAIN_PATH=./cmd/goterm
+BINARY_NAME=fluxterm
+MAIN_PATH=./cmd/fluxterm
 BUILD_DIR=.
 
 # Build the application

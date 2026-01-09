@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/goterm/internal/core/serial"
+	"github.com/yourusername/fluxterm/internal/core/serial"
 )
 
 // SerialHandler handles serial port related requests

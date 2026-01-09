@@ -1,4 +1,4 @@
-module github.com/yourusername/goterm
+module github.com/yourusername/fluxterm
 
 go 1.25.5
 

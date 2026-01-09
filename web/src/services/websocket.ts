@@ -103,8 +103,16 @@ export class WebSocketClient {
     this.sendControl('connect', config as unknown as Record<string, unknown>);
   }
 
+  connectSSH(config: Record<string, unknown>) {
+    this.sendControl('connect_ssh', config);
+  }
+
   disconnectPort() {
     this.sendControl('disconnect');
+  }
+
+  resizeTerminal(cols: number, rows: number) {
+    this.sendControl('resize', { cols, rows });
   }
 
   private scheduleReconnect() {

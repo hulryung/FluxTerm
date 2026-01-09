@@ -10,9 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/yourusername/goterm/internal/core/serial"
-	"github.com/yourusername/goterm/pkg/protocol/ws"
-	"github.com/yourusername/goterm/pkg/protocol/xmodem"
+	"github.com/yourusername/fluxterm/internal/core/serial"
+	"github.com/yourusername/fluxterm/internal/core/ssh"
+	"github.com/yourusername/fluxterm/pkg/protocol/ws"
+	"github.com/yourusername/fluxterm/pkg/protocol/xmodem"
 )
 
 var upgrader = websocket.Upgrader{
@@ -21,27 +22,39 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+// ConnectionType represents the type of connection
+type ConnectionType string
+
+const (
+	ConnTypeSerial ConnectionType = "serial"
+	ConnTypeSSH    ConnectionType = "ssh"
+)
+
 // WebSocketHandler handles WebSocket connections
 type WebSocketHandler struct {
 	serialManager *serial.Manager
+	sshManager    *ssh.Manager
 	sessions      map[string]*Session
 	mu            sync.RWMutex
 }
 
 // Session represents a WebSocket session
 type Session struct {
-	ID     string
-	conn   *websocket.Conn
-	port   *serial.Port
-	send   chan []byte
-	stop   chan struct{}
-	mu     sync.Mutex
+	ID       string
+	conn     *websocket.Conn
+	connType ConnectionType
+	port     *serial.Port
+	sshClient *ssh.Client
+	send     chan []byte
+	stop     chan struct{}
+	mu       sync.Mutex
 }
 
 // NewWebSocketHandler creates a new WebSocket handler
-func NewWebSocketHandler(serialManager *serial.Manager) *WebSocketHandler {
+func NewWebSocketHandler(serialManager *serial.Manager, sshManager *ssh.Manager) *WebSocketHandler {
 	return &WebSocketHandler{
 		serialManager: serialManager,
+		sshManager:    sshManager,
 		sessions:      make(map[string]*Session),
 	}
 }
@@ -167,8 +180,12 @@ func (h *WebSocketHandler) handleControl(session *Session, payload json.RawMessa
 	switch ctrl.Action {
 	case "connect":
 		h.handleConnect(session, ctrl.Params)
+	case "connect_ssh":
+		h.handleConnectSSH(session, ctrl.Params)
 	case "disconnect":
 		h.handleDisconnect(session)
+	case "resize":
+		h.handleResize(session, ctrl.Params)
 	case "send_file":
 		h.handleSendFile(session, ctrl.Params)
 	case "receive_file":
@@ -202,6 +219,7 @@ func (h *WebSocketHandler) handleConnect(session *Session, params map[string]int
 
 	session.mu.Lock()
 	session.port = port
+	session.connType = ConnTypeSerial
 	session.mu.Unlock()
 
 	h.sendStatus(session, "connected", "Port opened successfully")
@@ -210,7 +228,82 @@ func (h *WebSocketHandler) handleConnect(session *Session, params map[string]int
 	go h.readFromPort(session)
 }
 
-// handleDisconnect handles port disconnection
+// handleConnectSSH handles SSH connection
+func (h *WebSocketHandler) handleConnectSSH(session *Session, params map[string]interface{}) {
+	// Parse SSH configuration from params
+	config := ssh.DefaultSSHConfig()
+
+	if host, ok := params["host"].(string); ok {
+		config.Host = host
+	}
+	if port, ok := params["port"].(float64); ok {
+		config.Port = int(port)
+	}
+	if username, ok := params["username"].(string); ok {
+		config.Username = username
+	}
+	if password, ok := params["password"].(string); ok {
+		config.Password = password
+	}
+	if authMethod, ok := params["auth_method"].(string); ok {
+		config.AuthMethod = ssh.AuthMethod(authMethod)
+	}
+	if privateKey, ok := params["private_key"].(string); ok {
+		config.PrivateKey = privateKey
+	}
+	if privateKeyPath, ok := params["private_key_path"].(string); ok {
+		config.PrivateKeyPath = privateKeyPath
+	}
+	if passphrase, ok := params["private_key_passphrase"].(string); ok {
+		config.PrivateKeyPassphrase = passphrase
+	}
+	if cols, ok := params["cols"].(float64); ok {
+		config.Cols = int(cols)
+	}
+	if rows, ok := params["rows"].(float64); ok {
+		config.Rows = int(rows)
+	}
+
+	// Connect SSH
+	client, err := h.sshManager.Connect(session.ID, config)
+	if err != nil {
+		h.sendError(session, "SSH_CONNECT_FAILED", err.Error())
+		return
+	}
+
+	// Set data handler
+	client.SetDataHandler(func(data []byte) {
+		// Send data to WebSocket
+		encoded := base64.StdEncoding.EncodeToString(data)
+		dataPayload := ws.DataPayload{
+			Data:     encoded,
+			Encoding: "base64",
+		}
+
+		payloadJSON, _ := json.Marshal(dataPayload)
+		msg := ws.Message{
+			Type:      ws.MsgTypeData,
+			SessionID: session.ID,
+			Payload:   payloadJSON,
+			Timestamp: time.Now().UnixMilli(),
+		}
+
+		msgJSON, _ := json.Marshal(msg)
+		select {
+		case session.send <- msgJSON:
+		case <-session.stop:
+		}
+	})
+
+	session.mu.Lock()
+	session.sshClient = client
+	session.connType = ConnTypeSSH
+	session.mu.Unlock()
+
+	h.sendStatus(session, "connected", "SSH connected successfully")
+}
+
+// handleDisconnect handles port/SSH disconnection
 func (h *WebSocketHandler) handleDisconnect(session *Session) {
 	session.mu.Lock()
 	defer session.mu.Unlock()
@@ -221,7 +314,35 @@ func (h *WebSocketHandler) handleDisconnect(session *Session) {
 		session.port = nil
 	}
 
-	h.sendStatus(session, "disconnected", "Port closed")
+	if session.sshClient != nil {
+		h.sshManager.Close(session.ID)
+		session.sshClient = nil
+	}
+
+	session.connType = ""
+	h.sendStatus(session, "disconnected", "Connection closed")
+}
+
+// handleResize handles terminal resize
+func (h *WebSocketHandler) handleResize(session *Session, params map[string]interface{}) {
+	cols, okCols := params["cols"].(float64)
+	rows, okRows := params["rows"].(float64)
+
+	if !okCols || !okRows {
+		h.sendError(session, "INVALID_PARAMS", "Missing cols or rows")
+		return
+	}
+
+	session.mu.Lock()
+	defer session.mu.Unlock()
+
+	if session.connType == ConnTypeSSH && session.sshClient != nil {
+		if err := session.sshClient.Resize(int(cols), int(rows)); err != nil {
+			h.sendError(session, "RESIZE_FAILED", err.Error())
+			return
+		}
+	}
+	// Serial connections don't support resize
 }
 
 // handleData handles data transmission
@@ -234,10 +355,12 @@ func (h *WebSocketHandler) handleData(session *Session, payload json.RawMessage)
 
 	session.mu.Lock()
 	port := session.port
+	sshClient := session.sshClient
+	connType := session.connType
 	session.mu.Unlock()
 
-	if port == nil {
-		h.sendError(session, "NOT_CONNECTED", "No port connected")
+	if connType == "" {
+		h.sendError(session, "NOT_CONNECTED", "No connection established")
 		return
 	}
 
@@ -248,10 +371,17 @@ func (h *WebSocketHandler) handleData(session *Session, payload json.RawMessage)
 		return
 	}
 
-	// Write to port
-	if _, err := port.Write(decoded); err != nil {
-		h.sendError(session, "WRITE_ERROR", err.Error())
-		return
+	// Write to appropriate connection
+	if connType == ConnTypeSerial && port != nil {
+		if _, err := port.Write(decoded); err != nil {
+			h.sendError(session, "WRITE_ERROR", err.Error())
+			return
+		}
+	} else if connType == ConnTypeSSH && sshClient != nil {
+		if _, err := sshClient.Write(decoded); err != nil {
+			h.sendError(session, "WRITE_ERROR", err.Error())
+			return
+		}
 	}
 }
 
@@ -357,6 +487,9 @@ func (h *WebSocketHandler) closeSession(session *Session) {
 	if session.port != nil {
 		portName := session.port.GetConfig().Port
 		h.serialManager.Close(portName)
+	}
+	if session.sshClient != nil {
+		h.sshManager.Close(session.ID)
 	}
 	session.mu.Unlock()
 

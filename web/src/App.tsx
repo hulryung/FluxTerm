@@ -57,7 +57,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>GoTerm</h1>
+        <h1>FluxTerm</h1>
       </header>
 
       <TabBar

@@ -6,23 +6,27 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/goterm/internal/api/handler"
-	"github.com/yourusername/goterm/internal/core/serial"
+	"github.com/yourusername/fluxterm/internal/api/handler"
+	"github.com/yourusername/fluxterm/internal/core/serial"
+	"github.com/yourusername/fluxterm/internal/core/ssh"
 )
 
 // SetupRouter sets up the API routes
 func SetupRouter(serialManager *serial.Manager, webAssets *embed.FS) *gin.Engine {
 	router := gin.Default()
 
+	// Managers
+	sshManager := ssh.NewManager()
+
 	// Handlers
 	serialHandler := handler.NewSerialHandler(serialManager)
-	wsHandler := handler.NewWebSocketHandler(serialManager)
+	wsHandler := handler.NewWebSocketHandler(serialManager, sshManager)
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
-			"app":    "goterm",
+			"app":    "fluxterm",
 		})
 	})
 

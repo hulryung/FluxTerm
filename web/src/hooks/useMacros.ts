@@ -10,7 +10,7 @@ export interface Macro {
   lastUsed?: string;
 }
 
-const STORAGE_KEY = 'goterm_macros';
+const STORAGE_KEY = 'fluxterm_macros';
 
 export function useMacros() {
   const [macros, setMacros] = useState<Macro[]>([]);

@@ -1,4 +1,4 @@
-# GoTerm - 웹 기반 시리얼/SSH 터미널 클라이언트
+# FluxTerm - 웹 기반 시리얼/SSH 터미널 클라이언트
 
 ## 1. 프로젝트 개요
 
@@ -214,9 +214,9 @@ SecureCRT, TeraTerm을 대체하는 웹 기반 터미널 클라이언트 개발
 ## 5. 디렉토리 구조
 
 ```
-go-serial/
+fluxterm/
 ├── cmd/
-│   └── goterm/
+│   └── fluxterm/
 │       └── main.go              # 애플리케이션 진입점
 │
 ├── internal/

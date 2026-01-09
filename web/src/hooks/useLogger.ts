@@ -68,7 +68,7 @@ export function useLogger() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename || `goterm-log-${Date.now()}.txt`;
+    a.download = filename || `fluxterm-log-${Date.now()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

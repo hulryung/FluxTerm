@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/yourusername/goterm/internal/api"
-	"github.com/yourusername/goterm/internal/core/serial"
+	"github.com/yourusername/fluxterm/internal/api"
+	"github.com/yourusername/fluxterm/internal/core/serial"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 func main() {
 	// Setup logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("Starting GoTerm server...")
+	log.Println("Starting FluxTerm server...")
 
 	// Create serial manager
 	serialManager := serial.NewManager()

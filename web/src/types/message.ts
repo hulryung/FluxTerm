@@ -13,7 +13,7 @@ export interface DataPayload {
 }
 
 export interface ControlPayload {
-  action: 'connect' | 'disconnect' | 'resize' | 'send_file' | 'receive_file';
+  action: 'connect' | 'connect_ssh' | 'disconnect' | 'resize' | 'send_file' | 'receive_file';
   params?: Record<string, unknown>;
 }
 

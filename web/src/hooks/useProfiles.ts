@@ -9,7 +9,7 @@ export interface SessionProfile {
   lastUsed?: string;
 }
 
-const STORAGE_KEY = 'goterm_session_profiles';
+const STORAGE_KEY = 'fluxterm_session_profiles';
 
 export function useProfiles() {
   const [profiles, setProfiles] = useState<SessionProfile[]>([]);
