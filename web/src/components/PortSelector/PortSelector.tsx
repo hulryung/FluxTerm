@@ -7,7 +7,7 @@ import { useProfiles, type SessionProfile } from '../../hooks/useProfiles';
 import './PortSelector.css';
 
 interface PortSelectorProps {
-  onConnect: (config: SerialConfig) => void;
+  onConnect: (config: SerialConfig, autoReconnect: boolean) => void;
   onDisconnect: () => void;
   connected: boolean;
 }
@@ -20,6 +20,7 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
   const [error, setError] = useState<string | null>(null);
   const [dtrState, setDtrState] = useState(false);
   const [rtsState, setRtsState] = useState(false);
+  const [autoReconnect, setAutoReconnect] = useState(true);
 
   const { profiles, saveProfile, deleteProfile, updateLastUsed } = useProfiles();
 
@@ -51,7 +52,7 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
       ...config,
     };
 
-    onConnect(fullConfig);
+    onConnect(fullConfig, autoReconnect);
   };
 
   const handleSaveProfile = (name: string, profileConfig: SerialConfig) => {
@@ -201,6 +202,18 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
             <option value="rtscts">RTS/CTS</option>
             <option value="xonxoff">XON/XOFF</option>
           </select>
+        </div>
+
+        <div className="form-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={autoReconnect}
+              onChange={(e) => setAutoReconnect(e.target.checked)}
+              disabled={connected}
+            />
+            <span>Auto Reconnect</span>
+          </label>
         </div>
       </div>
 

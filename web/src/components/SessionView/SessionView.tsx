@@ -28,6 +28,9 @@ export function SessionView({
   const [status, setStatus] = useState('Disconnected');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('terminal');
   const [searchVisible, setSearchVisible] = useState(false);
+  const [autoReconnect, setAutoReconnect] = useState(false);
+  const [lastConfig, setLastConfig] = useState<SerialConfig | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
   const hexViewer = useHexViewer();
   const logger = useLogger();
@@ -65,10 +68,12 @@ export function SessionView({
           setStatus(payload.message || payload.state);
           if (payload.state === 'connected') {
             setConnected(true);
+            setReconnectAttempts(0);
             onConnectionChange(true);
           } else if (payload.state === 'disconnected') {
             setConnected(false);
             onConnectionChange(false);
+            // Auto-reconnect will be triggered by useEffect
           } else if (payload.state === 'ready') {
             // WebSocket ready, but serial not connected
             setConnected(false);
@@ -107,17 +112,39 @@ export function SessionView({
     };
   }, [sessionId, isActive]);
 
-  const handleConnect = (config: SerialConfig) => {
+  const handleConnect = (config: SerialConfig, enableAutoReconnect: boolean) => {
     setStatus('Connecting...');
+    setLastConfig(config);
+    setAutoReconnect(enableAutoReconnect);
+    setReconnectAttempts(0);
     wsClient.connectPort(config);
     onConfigChange(config);
   };
 
   const handleDisconnect = () => {
     setStatus('Disconnecting...');
+    setAutoReconnect(false); // Disable auto-reconnect on manual disconnect
+    setLastConfig(null);
     wsClient.disconnectPort();
     onConfigChange(null);
   };
+
+  // Auto-reconnect logic
+  useEffect(() => {
+    if (!connected && autoReconnect && lastConfig && reconnectAttempts < 5) {
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff, max 10s
+
+      setStatus(`Reconnecting in ${Math.round(delay / 1000)}s... (attempt ${reconnectAttempts + 1}/5)`);
+
+      const timer = setTimeout(() => {
+        console.log(`[${sessionId}] Auto-reconnecting, attempt ${reconnectAttempts + 1}`);
+        setReconnectAttempts((prev) => prev + 1);
+        wsClient.connectPort(lastConfig);
+      }, delay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [connected, autoReconnect, lastConfig, reconnectAttempts, sessionId]);
 
   const handleTerminalData = (data: string) => {
     if (connected) {
