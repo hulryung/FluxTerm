@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Terminal, useTerminal } from './components/Terminal/Terminal';
+import { TerminalToolbar } from './components/Terminal/TerminalToolbar';
 import { PortSelector } from './components/PortSelector/PortSelector';
 import { wsClient } from './services/websocket';
+import { useLogger } from './hooks/useLogger';
 import type { WSMessage, DataPayload, StatusPayload, ErrorPayload } from './types/message';
 import type { SerialConfig } from './types/serial';
 import './App.css';
@@ -10,7 +12,8 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [status, setStatus] = useState('Disconnected');
-  const { write } = useTerminal();
+  const { write, clear } = useTerminal();
+  const logger = useLogger();
 
   useEffect(() => {
     // Connect WebSocket
@@ -32,6 +35,7 @@ function App() {
           try {
             const decoded = atob(payload.data);
             write(decoded);
+            logger.addLog(decoded);
           } catch (err) {
             console.error('Failed to decode data:', err);
           }
@@ -106,6 +110,15 @@ function App() {
         />
 
         <div className="terminal-container">
+          <TerminalToolbar
+            isLogging={logger.isLogging}
+            onStartLogging={logger.startLogging}
+            onStopLogging={logger.stopLogging}
+            onDownloadLog={logger.downloadLog}
+            onClearLog={logger.clearLog}
+            onClearTerminal={clear}
+            logCount={logger.logCount}
+          />
           <Terminal onData={handleTerminalData} />
         </div>
       </main>
