@@ -4,8 +4,10 @@ import { TerminalToolbar, type DisplayMode } from '../Terminal/TerminalToolbar';
 import { SearchBar } from '../Terminal/SearchBar';
 import { HexViewer, useHexViewer } from '../HexViewer/HexViewer';
 import { PortSelector } from '../PortSelector/PortSelector';
+import { MacroManager } from '../MacroManager/MacroManager';
 import { wsClient } from '../../services/websocket';
 import { useLogger } from '../../hooks/useLogger';
+import { useMacros, type Macro } from '../../hooks/useMacros';
 import type { WSMessage, DataPayload, StatusPayload, ErrorPayload } from '../../types/message';
 import type { SerialConfig } from '../../types/serial';
 import './SessionView.css';
@@ -34,6 +36,7 @@ export function SessionView({
   const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
   const hexViewer = useHexViewer();
   const logger = useLogger();
+  const { macros, saveMacro, updateMacro, deleteMacro, updateLastUsed } = useMacros();
 
   useEffect(() => {
     // Connect WebSocket when component mounts
@@ -169,6 +172,36 @@ export function SessionView({
     clearSearch();
   };
 
+  const handleExecuteMacro = async (macro: Macro) => {
+    if (!connected) {
+      setStatus('Cannot execute macro: not connected');
+      return;
+    }
+
+    updateLastUsed(macro.id);
+    setStatus(`Executing macro: ${macro.name}...`);
+
+    for (let i = 0; i < macro.commands.length; i++) {
+      const command = macro.commands[i];
+
+      // Add line ending (CR+LF is most common for serial devices)
+      const commandWithLineEnding = command + '\r\n';
+
+      // Send command
+      wsClient.sendData(commandWithLineEnding);
+
+      // Log to terminal
+      write(`> ${command}\r\n`);
+
+      // Wait for delay before next command (except for last command)
+      if (i < macro.commands.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, macro.delay));
+      }
+    }
+
+    setStatus(`Macro "${macro.name}" executed (${macro.commands.length} commands)`);
+  };
+
   return (
     <div className={`session-view ${isActive ? 'active' : ''}`}>
       <div className="session-sidebar">
@@ -176,6 +209,13 @@ export function SessionView({
           onConnect={handleConnect}
           onDisconnect={handleDisconnect}
           connected={connected}
+        />
+        <MacroManager
+          macros={macros}
+          onSaveMacro={saveMacro}
+          onUpdateMacro={updateMacro}
+          onDeleteMacro={deleteMacro}
+          onExecuteMacro={handleExecuteMacro}
         />
       </div>
 
