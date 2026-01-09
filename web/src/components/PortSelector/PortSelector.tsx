@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { PortInfo, SerialConfig } from '../../types/serial';
 import { DEFAULT_CONFIG, BAUD_RATES } from '../../types/serial';
 import { apiClient } from '../../services/api';
+import { ProfileManager } from '../ProfileManager/ProfileManager';
+import { useProfiles, type SessionProfile } from '../../hooks/useProfiles';
 import './PortSelector.css';
 
 interface PortSelectorProps {
@@ -16,6 +18,8 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { profiles, saveProfile, deleteProfile, updateLastUsed } = useProfiles();
 
   useEffect(() => {
     loadPorts();
@@ -46,6 +50,30 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
     };
 
     onConnect(fullConfig);
+  };
+
+  const handleSaveProfile = (name: string, profileConfig: SerialConfig) => {
+    saveProfile(name, profileConfig);
+  };
+
+  const handleLoadProfile = (profile: SessionProfile) => {
+    setSelectedPort(profile.config.port);
+    setConfig({
+      baud_rate: profile.config.baud_rate,
+      data_bits: profile.config.data_bits,
+      stop_bits: profile.config.stop_bits,
+      parity: profile.config.parity,
+      flow_control: profile.config.flow_control,
+    });
+    updateLastUsed(profile.id);
+  };
+
+  const getCurrentConfig = (): SerialConfig | null => {
+    if (!selectedPort) return null;
+    return {
+      port: selectedPort,
+      ...config,
+    };
   };
 
   return (
@@ -165,6 +193,14 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
           </button>
         )}
       </div>
+
+      <ProfileManager
+        profiles={profiles}
+        onSaveProfile={handleSaveProfile}
+        onLoadProfile={handleLoadProfile}
+        onDeleteProfile={deleteProfile}
+        currentConfig={getCurrentConfig()}
+      />
     </div>
   );
 }
