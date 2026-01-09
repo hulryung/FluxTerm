@@ -66,7 +66,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	h.mu.Unlock()
 
 	// Send welcome message
-	h.sendStatus(session, "connected", "WebSocket connection established")
+	h.sendStatus(session, "ready", "WebSocket connection established")
 
 	// Start read/write goroutines
 	go h.readPump(session)

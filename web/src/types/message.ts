@@ -18,7 +18,7 @@ export interface ControlPayload {
 }
 
 export interface StatusPayload {
-  state: 'connected' | 'disconnected' | 'connecting' | 'error';
+  state: 'connected' | 'disconnected' | 'connecting' | 'error' | 'ready';
   message?: string;
 }
 

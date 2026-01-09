@@ -45,6 +45,9 @@ function App() {
             setConnected(true);
           } else if (payload.state === 'disconnected') {
             setConnected(false);
+          } else if (payload.state === 'ready') {
+            // WebSocket ready, but serial not connected
+            setConnected(false);
           }
           break;
         }
@@ -62,7 +65,7 @@ function App() {
       unsubscribe();
       wsClient.disconnect();
     };
-  }, [write]);
+  }, []); // Empty dependency array to run only once
 
   const handleConnect = (config: SerialConfig) => {
     setStatus('Connecting...');
