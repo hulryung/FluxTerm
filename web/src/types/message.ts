@@ -1,4 +1,4 @@
-export type MessageType = 'data' | 'control' | 'status' | 'error';
+export type MessageType = 'data' | 'control' | 'status' | 'error' | 'file_transfer';
 
 export interface WSMessage {
   type: MessageType;
@@ -13,7 +13,7 @@ export interface DataPayload {
 }
 
 export interface ControlPayload {
-  action: 'connect' | 'disconnect' | 'resize';
+  action: 'connect' | 'disconnect' | 'resize' | 'send_file' | 'receive_file';
   params?: Record<string, unknown>;
 }
 
@@ -25,4 +25,14 @@ export interface StatusPayload {
 export interface ErrorPayload {
   code: string;
   message: string;
+}
+
+export interface FileTransferPayload {
+  action: 'start' | 'progress' | 'complete' | 'error';
+  file_name: string;
+  file_size: number;
+  sent: number;
+  received: number;
+  message?: string;
+  error?: string;
 }

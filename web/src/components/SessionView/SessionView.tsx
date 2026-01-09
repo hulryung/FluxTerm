@@ -5,6 +5,7 @@ import { SearchBar } from '../Terminal/SearchBar';
 import { HexViewer, useHexViewer } from '../HexViewer/HexViewer';
 import { PortSelector } from '../PortSelector/PortSelector';
 import { MacroManager } from '../MacroManager/MacroManager';
+import { FileTransfer, type FileTransferProgress } from '../FileTransfer/FileTransfer';
 import { wsClient } from '../../services/websocket';
 import { useLogger } from '../../hooks/useLogger';
 import { useMacros, type Macro } from '../../hooks/useMacros';
@@ -33,6 +34,7 @@ export function SessionView({
   const [autoReconnect, setAutoReconnect] = useState(false);
   const [lastConfig, setLastConfig] = useState<SerialConfig | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [transferProgress, setTransferProgress] = useState<FileTransferProgress | null>(null);
   const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
   const hexViewer = useHexViewer();
   const logger = useLogger();
@@ -89,6 +91,30 @@ export function SessionView({
           const payload = message.payload as ErrorPayload;
           setStatus(`Error: ${payload.message}`);
           write(`\r\n[ERROR] ${payload.message}\r\n`);
+          break;
+        }
+
+        case 'file_transfer': {
+          const payload = message.payload as any; // FileTransferPayload
+          setTransferProgress({
+            action: payload.action,
+            fileName: payload.file_name,
+            fileSize: payload.file_size,
+            sent: payload.sent,
+            received: payload.received,
+            message: payload.message,
+            error: payload.error,
+            data: payload.action === 'complete' && payload.received > 0 ? payload.message : undefined,
+          });
+
+          // Log to terminal
+          if (payload.action === 'start') {
+            write(`\r\n[FILE TRANSFER] ${payload.message}\r\n`);
+          } else if (payload.action === 'complete') {
+            write(`\r\n[FILE TRANSFER] ${payload.file_name} - Transfer complete\r\n`);
+          } else if (payload.action === 'error') {
+            write(`\r\n[FILE TRANSFER ERROR] ${payload.error}\r\n`);
+          }
           break;
         }
       }
@@ -202,6 +228,52 @@ export function SessionView({
     setStatus(`Macro "${macro.name}" executed (${macro.commands.length} commands)`);
   };
 
+  const handleSendFile = async (file: File, protocol: string) => {
+    if (!connected) {
+      setStatus('Cannot send file: not connected');
+      return;
+    }
+
+    setStatus(`Preparing to send file: ${file.name}...`);
+
+    try {
+      // Read file as base64
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+
+      // Send file transfer command
+      wsClient.sendControl('send_file', {
+        file_name: file.name,
+        data: base64,
+        protocol: protocol,
+      });
+
+      setStatus(`Sending file: ${file.name} (${file.size} bytes)`);
+    } catch (err) {
+      setStatus(`Failed to read file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleReceiveFile = (fileName: string, protocol: string) => {
+    if (!connected) {
+      setStatus('Cannot receive file: not connected');
+      return;
+    }
+
+    setStatus(`Waiting to receive file: ${fileName}...`);
+
+    // Send receive file command
+    wsClient.sendControl('receive_file', {
+      file_name: fileName,
+      protocol: protocol,
+    });
+  };
+
   return (
     <div className={`session-view ${isActive ? 'active' : ''}`}>
       <div className="session-sidebar">
@@ -216,6 +288,12 @@ export function SessionView({
           onUpdateMacro={updateMacro}
           onDeleteMacro={deleteMacro}
           onExecuteMacro={handleExecuteMacro}
+        />
+        <FileTransfer
+          connected={connected}
+          onSendFile={handleSendFile}
+          onReceiveFile={handleReceiveFile}
+          transferProgress={transferProgress}
         />
       </div>
 

@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/yourusername/goterm/internal/core/serial"
 	"github.com/yourusername/goterm/pkg/protocol/ws"
+	"github.com/yourusername/goterm/pkg/protocol/xmodem"
 )
 
 var upgrader = websocket.Upgrader{
@@ -168,6 +169,10 @@ func (h *WebSocketHandler) handleControl(session *Session, payload json.RawMessa
 		h.handleConnect(session, ctrl.Params)
 	case "disconnect":
 		h.handleDisconnect(session)
+	case "send_file":
+		h.handleSendFile(session, ctrl.Params)
+	case "receive_file":
+		h.handleReceiveFile(session, ctrl.Params)
 	default:
 		h.sendError(session, "UNKNOWN_ACTION", "Unknown control action")
 	}
@@ -374,4 +379,154 @@ func randomString(n int) string {
 		b[i] = letters[time.Now().UnixNano()%int64(len(letters))]
 	}
 	return string(b)
+}
+
+// handleSendFile handles sending a file using XMODEM protocol
+func (h *WebSocketHandler) handleSendFile(session *Session, params map[string]interface{}) {
+	session.mu.Lock()
+	port := session.port
+	session.mu.Unlock()
+
+	if port == nil {
+		h.sendError(session, "NOT_CONNECTED", "No port connected")
+		return
+	}
+
+	// Get file data (base64 encoded)
+	fileDataStr, ok := params["data"].(string)
+	if !ok {
+		h.sendError(session, "INVALID_PARAMS", "Missing or invalid 'data' parameter")
+		return
+	}
+
+	fileName, _ := params["file_name"].(string)
+	if fileName == "" {
+		fileName = "file.bin"
+	}
+
+	// Decode file data
+	fileData, err := base64.StdEncoding.DecodeString(fileDataStr)
+	if err != nil {
+		h.sendError(session, "DECODE_ERROR", "Failed to decode file data")
+		return
+	}
+
+	// Determine protocol (XMODEM-CRC, XMODEM-1K/YMODEM)
+	useCRC := true
+	use1K := false
+	if protocol, ok := params["protocol"].(string); ok {
+		if protocol == "ymodem" || protocol == "xmodem1k" {
+			use1K = true
+		}
+	}
+
+	// Send file transfer start notification
+	h.sendFileTransfer(session, "start", fileName, int64(len(fileData)), 0, 0, "Starting file transfer...", "")
+
+	// Create XMODEM sender
+	sender := xmodem.NewSender(port, useCRC, use1K)
+	sender.SetProgressCallback(func(sent, total int64) {
+		h.sendFileTransfer(session, "progress", fileName, total, sent, 0, "", "")
+	})
+
+	// Send file in a goroutine
+	go func() {
+		if err := sender.Send(fileData); err != nil {
+			h.sendFileTransfer(session, "error", fileName, int64(len(fileData)), 0, 0, "", err.Error())
+		} else {
+			h.sendFileTransfer(session, "complete", fileName, int64(len(fileData)), int64(len(fileData)), 0, "File transfer completed successfully", "")
+		}
+	}()
+}
+
+// handleReceiveFile handles receiving a file using XMODEM protocol
+func (h *WebSocketHandler) handleReceiveFile(session *Session, params map[string]interface{}) {
+	session.mu.Lock()
+	port := session.port
+	session.mu.Unlock()
+
+	if port == nil {
+		h.sendError(session, "NOT_CONNECTED", "No port connected")
+		return
+	}
+
+	fileName, _ := params["file_name"].(string)
+	if fileName == "" {
+		fileName = "received_file.bin"
+	}
+
+	useCRC := true
+	if protocol, ok := params["protocol"].(string); ok {
+		if protocol == "xmodem" {
+			useCRC = false
+		}
+	}
+
+	// Send file transfer start notification
+	h.sendFileTransfer(session, "start", fileName, 0, 0, 0, "Starting file receive...", "")
+
+	// Create XMODEM receiver
+	receiver := xmodem.NewReceiver(port, useCRC)
+	receiver.SetProgressCallback(func(received, total int64) {
+		h.sendFileTransfer(session, "progress", fileName, total, 0, received, "", "")
+	})
+
+	// Receive file in a goroutine
+	go func() {
+		data, err := receiver.Receive()
+		if err != nil {
+			h.sendFileTransfer(session, "error", fileName, 0, 0, 0, "", err.Error())
+		} else {
+			// Send received file data (base64 encoded)
+			encoded := base64.StdEncoding.EncodeToString(data)
+			payload := ws.FileTransferPayload{
+				Action:   "complete",
+				FileName: fileName,
+				FileSize: int64(len(data)),
+				Received: int64(len(data)),
+				Message:  encoded, // Using Message field for file data
+			}
+			payloadJSON, _ := json.Marshal(payload)
+
+			msg := ws.Message{
+				Type:      ws.MsgTypeFileTransfer,
+				SessionID: session.ID,
+				Payload:   payloadJSON,
+				Timestamp: time.Now().UnixMilli(),
+			}
+
+			msgJSON, _ := json.Marshal(msg)
+			select {
+			case session.send <- msgJSON:
+			default:
+			}
+		}
+	}()
+}
+
+// sendFileTransfer sends a file transfer progress/status message
+func (h *WebSocketHandler) sendFileTransfer(session *Session, action, fileName string, fileSize, sent, received int64, message, errorMsg string) {
+	payload := ws.FileTransferPayload{
+		Action:   action,
+		FileName: fileName,
+		FileSize: fileSize,
+		Sent:     sent,
+		Received: received,
+		Message:  message,
+		Error:    errorMsg,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	msg := ws.Message{
+		Type:      ws.MsgTypeFileTransfer,
+		SessionID: session.ID,
+		Payload:   payloadJSON,
+		Timestamp: time.Now().UnixMilli(),
+	}
+
+	msgJSON, _ := json.Marshal(msg)
+	select {
+	case session.send <- msgJSON:
+	default:
+	}
 }

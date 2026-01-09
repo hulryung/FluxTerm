@@ -6,10 +6,11 @@ import "encoding/json"
 type MessageType string
 
 const (
-	MsgTypeData    MessageType = "data"
-	MsgTypeControl MessageType = "control"
-	MsgTypeStatus  MessageType = "status"
-	MsgTypeError   MessageType = "error"
+	MsgTypeData         MessageType = "data"
+	MsgTypeControl      MessageType = "control"
+	MsgTypeStatus       MessageType = "status"
+	MsgTypeError        MessageType = "error"
+	MsgTypeFileTransfer MessageType = "file_transfer"
 )
 
 // Message represents a WebSocket message
@@ -42,4 +43,15 @@ type StatusPayload struct {
 type ErrorPayload struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// FileTransferPayload represents file transfer progress/status
+type FileTransferPayload struct {
+	Action   string `json:"action"`   // "start" | "progress" | "complete" | "error"
+	FileName string `json:"file_name,omitempty"`
+	FileSize int64  `json:"file_size,omitempty"`
+	Sent     int64  `json:"sent,omitempty"`
+	Received int64  `json:"received,omitempty"`
+	Message  string `json:"message,omitempty"`
+	Error    string `json:"error,omitempty"`
 }

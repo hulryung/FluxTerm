@@ -1,0 +1,276 @@
+.file-transfer {
+  margin-top: 12px;
+}
+
+.file-transfer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.ft-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.ft-btn:hover:not(:disabled) {
+  background: #464646;
+  border-color: #666;
+}
+
+.ft-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ft-btn.send {
+  border-left: 3px solid #0e639c;
+}
+
+.ft-btn.receive {
+  border-left: 3px solid #0e9c63;
+}
+
+/* Progress */
+.transfer-progress {
+  margin-top: 12px;
+  padding: 12px;
+  background: #252525;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.progress-file {
+  color: #d4d4d4;
+  font-weight: 600;
+}
+
+.progress-percent {
+  color: #0e639c;
+  font-weight: bold;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0e639c, #1177bb);
+  transition: width 0.3s ease;
+}
+
+.progress-message {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9d9d9d;
+  font-style: italic;
+}
+
+.progress-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #f48771;
+}
+
+/* Complete */
+.transfer-complete {
+  margin-top: 12px;
+  padding: 12px;
+  background: #252525;
+  border: 1px solid #0e9c63;
+  border-radius: 4px;
+}
+
+.complete-message {
+  color: #0e9c63;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.download-btn {
+  padding: 6px 12px;
+  background: #0e639c;
+  color: white;
+  border: 1px solid #0e639c;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background: #1177bb;
+}
+
+/* Dialog */
+.ft-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s;
+}
+
+.ft-dialog {
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 20px;
+  min-width: 500px;
+  max-width: 600px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.2s;
+}
+
+.ft-dialog h3 {
+  margin: 0 0 20px 0;
+  color: #d4d4d4;
+  font-size: 18px;
+}
+
+.ft-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9d9d9d;
+}
+
+.form-field input,
+.form-field select {
+  padding: 8px 12px;
+  background: #1e1e1e;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 14px;
+  font-family: 'Consolas', monospace;
+  outline: none;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #0e639c;
+}
+
+.file-input {
+  cursor: pointer;
+}
+
+.file-info {
+  padding: 8px 12px;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #9d9d9d;
+}
+
+.file-info div {
+  margin-bottom: 4px;
+}
+
+.file-info div:last-child {
+  margin-bottom: 0;
+}
+
+.protocol-info {
+  padding: 10px;
+  background: #1e1e1e;
+  border-left: 3px solid #0e639c;
+  font-size: 12px;
+  color: #9d9d9d;
+}
+
+.protocol-info strong {
+  color: #d4d4d4;
+}
+
+.ft-dialog-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.ft-dialog-buttons button {
+  padding: 8px 20px;
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.ft-dialog-buttons button:first-child {
+  background: #0e639c;
+  border-color: #0e639c;
+}
+
+.ft-dialog-buttons button:hover:not(:disabled) {
+  background: #464646;
+}
+
+.ft-dialog-buttons button:first-child:hover:not(:disabled) {
+  background: #1177bb;
+}
+
+.ft-dialog-buttons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
