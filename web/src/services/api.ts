@@ -46,6 +46,36 @@ export class ApiClient {
     }
     return response.json();
   }
+
+  async setDTR(portName: string, value: boolean): Promise<void> {
+    const response = await fetch(`${API_BASE}/ports/${portName}/dtr`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ value }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to set DTR');
+    }
+  }
+
+  async setRTS(portName: string, value: boolean): Promise<void> {
+    const response = await fetch(`${API_BASE}/ports/${portName}/rts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ value }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to set RTS');
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

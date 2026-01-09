@@ -18,6 +18,8 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dtrState, setDtrState] = useState(false);
+  const [rtsState, setRtsState] = useState(false);
 
   const { profiles, saveProfile, deleteProfile, updateLastUsed } = useProfiles();
 
@@ -74,6 +76,30 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
       port: selectedPort,
       ...config,
     };
+  };
+
+  const handleDTRToggle = async () => {
+    if (!connected || !selectedPort) return;
+
+    try {
+      const newState = !dtrState;
+      await apiClient.setDTR(selectedPort, newState);
+      setDtrState(newState);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to set DTR');
+    }
+  };
+
+  const handleRTSToggle = async () => {
+    if (!connected || !selectedPort) return;
+
+    try {
+      const newState = !rtsState;
+      await apiClient.setRTS(selectedPort, newState);
+      setRtsState(newState);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to set RTS');
+    }
   };
 
   return (
@@ -193,6 +219,28 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
           </button>
         )}
       </div>
+
+      {connected && (
+        <div className="control-panel">
+          <h4>Hardware Control</h4>
+          <div className="control-buttons">
+            <button
+              className={`control-btn ${dtrState ? 'active' : ''}`}
+              onClick={handleDTRToggle}
+              title="Toggle DTR (Data Terminal Ready)"
+            >
+              DTR {dtrState ? 'ON' : 'OFF'}
+            </button>
+            <button
+              className={`control-btn ${rtsState ? 'active' : ''}`}
+              onClick={handleRTSToggle}
+              title="Toggle RTS (Request To Send)"
+            >
+              RTS {rtsState ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <ProfileManager
         profiles={profiles}
