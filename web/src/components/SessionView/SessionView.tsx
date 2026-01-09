@@ -27,6 +27,7 @@ export function SessionView({
   onConnectionChange,
   onConfigChange,
 }: SessionViewProps) {
+  const [connectionMode, setConnectionMode] = useState<'serial' | 'ssh'>('serial');
   const [connected, setConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [status, setStatus] = useState('Disconnected');
@@ -149,6 +150,12 @@ export function SessionView({
     setReconnectAttempts(0);
     wsClient.connectPort(config);
     onConfigChange(config);
+  };
+
+  const handleSSHConnect = (config: SSHConfig) => {
+    setStatus('Connecting to SSH...');
+    wsClient.connectSSH(config as unknown as Record<string, unknown>);
+    setAutoReconnect(false);
   };
 
   const handleDisconnect = () => {
@@ -278,11 +285,37 @@ export function SessionView({
   return (
     <div className={`session-view ${isActive ? 'active' : ''}`}>
       <div className="session-sidebar">
-        <PortSelector
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-          connected={connected}
-        />
+        <div className="connection-mode-selector">
+          <button
+            className={`mode-btn ${connectionMode === 'serial' ? 'active' : ''}`}
+            onClick={() => !connected && setConnectionMode('serial')}
+            disabled={connected}
+          >
+            Serial
+          </button>
+          <button
+            className={`mode-btn ${connectionMode === 'ssh' ? 'active' : ''}`}
+            onClick={() => !connected && setConnectionMode('ssh')}
+            disabled={connected}
+          >
+            SSH
+          </button>
+        </div>
+
+        {connectionMode === 'serial' ? (
+          <PortSelector
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+            connected={connected}
+          />
+        ) : (
+          <SSHConnector
+            onConnect={handleSSHConnect}
+            onDisconnect={handleDisconnect}
+            connected={connected}
+          />
+        )}
+
         <MacroManager
           macros={macros}
           onSaveMacro={saveMacro}
@@ -290,12 +323,15 @@ export function SessionView({
           onDeleteMacro={deleteMacro}
           onExecuteMacro={handleExecuteMacro}
         />
-        <FileTransfer
-          connected={connected}
-          onSendFile={handleSendFile}
-          onReceiveFile={handleReceiveFile}
-          transferProgress={transferProgress}
-        />
+
+        {connectionMode === 'serial' && (
+          <FileTransfer
+            connected={connected}
+            onSendFile={handleSendFile}
+            onReceiveFile={handleReceiveFile}
+            transferProgress={transferProgress}
+          />
+        )}
       </div>
 
       <div className="session-main">

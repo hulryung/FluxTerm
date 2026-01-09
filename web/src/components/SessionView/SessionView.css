@@ -17,6 +17,43 @@
   flex-shrink: 0;
 }
 
+.connection-mode-selector {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #3c3c3c;
+  color: #9d9d9d;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover:not(:disabled) {
+  background: #464646;
+  border-color: #666;
+}
+
+.mode-btn.active {
+  background: #0e639c;
+  border-color: #0e639c;
+  color: white;
+}
+
+.mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .session-main {
   flex: 1;
   display: flex;
