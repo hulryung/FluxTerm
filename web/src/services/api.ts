@@ -1,6 +1,6 @@
 import type { PortInfo, SerialConfig } from '../types/serial';
 
-const API_BASE = '/api/v1';
+const API_BASE = 'http://127.0.0.1:8080/api/v1';
 
 export class ApiClient {
   async listPorts(): Promise<PortInfo[]> {

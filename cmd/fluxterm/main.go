@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,9 @@ import (
 	"github.com/yourusername/fluxterm/internal/api"
 	"github.com/yourusername/fluxterm/internal/core/serial"
 )
+
+//go:embed ../../web/dist
+var webAssets embed.FS
 
 const (
 	defaultHost = "127.0.0.1"
@@ -36,8 +40,8 @@ func main() {
 	serialManager := serial.NewManager()
 	defer serialManager.CloseAll()
 
-	// Setup router
-	router := api.SetupRouter(serialManager, nil)
+	// Setup router with embedded web assets
+	router := api.SetupRouter(serialManager, &webAssets)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", getEnv("HOST", defaultHost), getEnv("PORT", defaultPort))

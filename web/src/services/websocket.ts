@@ -9,7 +9,7 @@ export class WebSocketClient {
   private reconnectTimeout: number | null = null;
   private url: string;
 
-  constructor(url: string = `ws://${window.location.host}/ws`) {
+  constructor(url: string = 'ws://127.0.0.1:8080/ws') {
     this.url = url;
   }
 
@@ -61,7 +61,7 @@ export class WebSocketClient {
       this.ws.onclose = () => {
         console.log('WebSocket closed');
         // Disable auto-reconnect for now
-        // this.scheduleReconnect();
+        // this._scheduleReconnect();
       };
     });
   }
@@ -133,7 +133,9 @@ export class WebSocketClient {
     this.sendControl('resize', { cols, rows });
   }
 
-  private scheduleReconnect() {
+  // Reserved for future use - automatic reconnection
+  // @ts-expect-error - Method intentionally unused
+  private _scheduleReconnect() {
     if (this.reconnectTimeout) return;
 
     this.reconnectTimeout = window.setTimeout(() => {

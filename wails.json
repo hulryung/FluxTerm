@@ -1,0 +1,25 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "FluxTerm",
+  "outputfilename": "fluxterm",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "http://localhost:5173",
+  "frontend:dir": "./web",
+  "author": {
+    "name": "HUCONN Corporation",
+    "email": ""
+  },
+  "info": {
+    "companyName": "HUCONN Corporation",
+    "productName": "FluxTerm",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2024 HUCONN Corporation",
+    "comments": "Serial and SSH Terminal Application"
+  },
+  "wailsjsdir": "./web",
+  "assetdir": "./web/dist",
+  "reloaddirs": "./web/src,./internal",
+  "build:dir": "./build"
+}

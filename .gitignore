@@ -47,3 +47,8 @@ web/dist/
 .claude/
 *.local.json
 *.local.yaml
+
+# Wails
+wailsjs/
+web/wailsjs/
+web/package.json.md5
