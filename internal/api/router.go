@@ -1,13 +1,17 @@
 package api
 
 import (
+	"embed"
+	"io/fs"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/goterm/internal/api/handler"
 	"github.com/yourusername/goterm/internal/core/serial"
 )
 
 // SetupRouter sets up the API routes
-func SetupRouter(serialManager *serial.Manager) *gin.Engine {
+func SetupRouter(serialManager *serial.Manager, webAssets *embed.FS) *gin.Engine {
 	router := gin.Default()
 
 	// Handlers
@@ -39,6 +43,31 @@ func SetupRouter(serialManager *serial.Manager) *gin.Engine {
 			ports.POST("/:name/dtr", serialHandler.SetDTR)
 			ports.POST("/:name/rts", serialHandler.SetRTS)
 		}
+	}
+
+	// Serve static files (frontend)
+	if webAssets != nil {
+		distFS, err := fs.Sub(*webAssets, "dist")
+		if err == nil {
+			router.NoRoute(func(c *gin.Context) {
+				// Try to serve file
+				file, err := distFS.Open(c.Request.URL.Path[1:])
+				if err == nil {
+					file.Close()
+					c.FileFromFS(c.Request.URL.Path, http.FS(distFS))
+					return
+				}
+
+				// Fallback to index.html for SPA routing
+				c.FileFromFS("index.html", http.FS(distFS))
+			})
+		}
+	} else {
+		// Development mode: serve from ./web/dist directory
+		router.Static("/assets", "./web/dist/assets")
+		router.NoRoute(func(c *gin.Context) {
+			c.File("./web/dist/index.html")
+		})
 	}
 
 	return router

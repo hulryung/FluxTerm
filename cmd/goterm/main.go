@@ -26,7 +26,7 @@ func main() {
 	defer serialManager.CloseAll()
 
 	// Setup router
-	router := api.SetupRouter(serialManager)
+	router := api.SetupRouter(serialManager, nil)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", getEnv("HOST", defaultHost), getEnv("PORT", defaultPort))

@@ -1,0 +1,120 @@
+.port-selector {
+  background: #2d2d2d;
+  color: #d4d4d4;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.port-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.port-selector-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.port-selector-header button {
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.port-selector-header button:hover:not(:disabled) {
+  background: #464646;
+}
+
+.port-selector-header button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #5a1e1e;
+  color: #f48771;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  border-left: 3px solid #f14c4c;
+}
+
+.config-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9d9d9d;
+}
+
+.form-group select {
+  background: #3c3c3c;
+  color: #d4d4d4;
+  border: 1px solid #555;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-connect,
+.btn-disconnect {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-connect {
+  background: #0e639c;
+  color: white;
+}
+
+.btn-connect:hover:not(:disabled) {
+  background: #1177bb;
+}
+
+.btn-connect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-disconnect {
+  background: #a1260d;
+  color: white;
+}
+
+.btn-disconnect:hover {
+  background: #c9302c;
+}
