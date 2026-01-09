@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Terminal, useTerminal } from './components/Terminal/Terminal';
-import { TerminalToolbar } from './components/Terminal/TerminalToolbar';
+import { TerminalToolbar, type DisplayMode } from './components/Terminal/TerminalToolbar';
+import { HexViewer, useHexViewer } from './components/HexViewer/HexViewer';
 import { PortSelector } from './components/PortSelector/PortSelector';
 import { wsClient } from './services/websocket';
 import { useLogger } from './hooks/useLogger';
@@ -12,7 +13,9 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [status, setStatus] = useState('Disconnected');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('terminal');
   const { write, clear } = useTerminal();
+  const hexViewer = useHexViewer();
   const logger = useLogger();
 
   useEffect(() => {
@@ -35,6 +38,7 @@ function App() {
           try {
             const decoded = atob(payload.data);
             write(decoded);
+            hexViewer.addData(decoded);
             logger.addLog(decoded);
           } catch (err) {
             console.error('Failed to decode data:', err);
@@ -87,6 +91,11 @@ function App() {
     }
   };
 
+  const handleClearDisplay = () => {
+    clear();
+    hexViewer.clear();
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -116,10 +125,16 @@ function App() {
             onStopLogging={logger.stopLogging}
             onDownloadLog={logger.downloadLog}
             onClearLog={logger.clearLog}
-            onClearTerminal={clear}
+            onClearTerminal={handleClearDisplay}
             logCount={logger.logCount}
+            displayMode={displayMode}
+            onDisplayModeChange={setDisplayMode}
           />
-          <Terminal onData={handleTerminalData} />
+          {displayMode === 'terminal' ? (
+            <Terminal onData={handleTerminalData} />
+          ) : (
+            <HexViewer />
+          )}
         </div>
       </main>
     </div>

@@ -41,6 +41,17 @@
   cursor: not-allowed;
 }
 
+.toolbar-btn.btn-active {
+  background: #0e639c;
+  border-color: #0e639c;
+  color: white;
+}
+
+.toolbar-btn.btn-active:hover {
+  background: #0e639c;
+  border-color: #0e639c;
+}
+
 .toolbar-btn.btn-start {
   background: #0e639c;
   border-color: #0e639c;

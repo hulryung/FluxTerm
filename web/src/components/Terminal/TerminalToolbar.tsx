@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { LogFormat } from '../../hooks/useLogger';
 import './TerminalToolbar.css';
 
+export type DisplayMode = 'terminal' | 'hex';
+
 interface TerminalToolbarProps {
   isLogging: boolean;
   onStartLogging: () => void;
@@ -10,6 +12,8 @@ interface TerminalToolbarProps {
   onClearLog: () => void;
   onClearTerminal: () => void;
   logCount: number;
+  displayMode: DisplayMode;
+  onDisplayModeChange: (mode: DisplayMode) => void;
 }
 
 export function TerminalToolbar({
@@ -20,6 +24,8 @@ export function TerminalToolbar({
   onClearLog,
   onClearTerminal,
   logCount,
+  displayMode,
+  onDisplayModeChange,
 }: TerminalToolbarProps) {
   const [showFormatMenu, setShowFormatMenu] = useState(false);
 
@@ -31,11 +37,29 @@ export function TerminalToolbar({
   return (
     <div className="terminal-toolbar">
       <div className="toolbar-section">
-        <span className="toolbar-label">Terminal Controls:</span>
+        <span className="toolbar-label">Display:</span>
+        <button
+          className={`toolbar-btn ${displayMode === 'terminal' ? 'btn-active' : ''}`}
+          onClick={() => onDisplayModeChange('terminal')}
+          title="Terminal mode"
+        >
+          📟 Terminal
+        </button>
+        <button
+          className={`toolbar-btn ${displayMode === 'hex' ? 'btn-active' : ''}`}
+          onClick={() => onDisplayModeChange('hex')}
+          title="HEX viewer mode"
+        >
+          🔢 HEX
+        </button>
+      </div>
+
+      <div className="toolbar-section">
+        <span className="toolbar-label">Controls:</span>
         <button
           className="toolbar-btn"
           onClick={onClearTerminal}
-          title="Clear terminal display"
+          title="Clear display"
         >
           🗑️ Clear
         </button>
