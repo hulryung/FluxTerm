@@ -37,22 +37,15 @@ export function SessionView({
   const [lastConfig, setLastConfig] = useState<SerialConfig | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [transferProgress, setTransferProgress] = useState<FileTransferProgress | null>(null);
+  const [sshSessionId, setSshSessionId] = useState<string | null>(null);
   const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
   const hexViewer = useHexViewer();
   const logger = useLogger();
   const { macros, saveMacro, updateMacro, deleteMacro, updateLastUsed } = useMacros();
 
   useEffect(() => {
-    // Connect WebSocket when component mounts
-    wsClient.connect()
-      .then(() => {
-        console.log(`[${sessionId}] WebSocket connected`);
-        setWsConnected(true);
-      })
-      .catch((err) => {
-        console.error(`[${sessionId}] WebSocket connection failed:`, err);
-        setWsConnected(false);
-      });
+    // Check WebSocket connection status
+    setWsConnected(true); // Assuming it's connected (managed by App)
 
     // Handle WebSocket messages
     const unsubscribe = wsClient.onMessage((message: WSMessage) => {
@@ -152,18 +145,81 @@ export function SessionView({
     onConfigChange(config);
   };
 
-  const handleSSHConnect = (config: SSHConfig) => {
+  const handleSSHConnect = async (config: SSHConfig) => {
+    write(`\r\n\x1b[36m[SSH]\x1b[0m Connecting to ${config.host}:${config.port}...\r\n`);
     setStatus('Connecting to SSH...');
-    wsClient.connectSSH(config as unknown as Record<string, unknown>);
     setAutoReconnect(false);
+
+    try {
+      const response = await fetch('/api/v1/ssh/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        write(`\x1b[32m[SSH]\x1b[0m Session created (ID: ${result.session_id})\r\n`);
+        write(`\x1b[36m[SSH]\x1b[0m Attaching terminal...\r\n`);
+
+        setConnected(true);
+        setSshSessionId(result.session_id);
+        setStatus('SSH connected - Attaching to WebSocket...');
+        onConnectionChange(true);
+        setLastConfig(config as any); // Store for reference
+
+        // Attach WebSocket to SSH session
+        wsClient.sendControl('attach_ssh', {
+          session_id: result.session_id,
+        });
+
+        write(`\x1b[32m[SSH]\x1b[0m Connected! Ready for input.\r\n\r\n`);
+        setStatus('SSH ready');
+      } else {
+        write(`\x1b[31m[SSH ERROR]\x1b[0m ${result.message}\r\n`);
+        setStatus(`SSH connection failed: ${result.message}`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      write(`\x1b[31m[SSH ERROR]\x1b[0m ${errorMsg}\r\n`);
+      setStatus(`SSH connection error: ${errorMsg}`);
+    }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     setStatus('Disconnecting...');
     setAutoReconnect(false); // Disable auto-reconnect on manual disconnect
     setLastConfig(null);
-    wsClient.disconnectPort();
-    onConfigChange(null);
+
+    if (connectionMode === 'ssh' && sshSessionId) {
+      // SSH: Use REST API to disconnect
+      try {
+        const response = await fetch(`/api/v1/ssh/${sshSessionId}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setConnected(false);
+          setSshSessionId(null);
+          setStatus('SSH disconnected');
+          onConnectionChange(false);
+          write('\r\n[SSH] Disconnected\r\n');
+        } else {
+          setStatus(`SSH disconnect failed: ${result.message}`);
+        }
+      } catch (error) {
+        setStatus(`SSH disconnect error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    } else {
+      // Serial: Use WebSocket control message
+      wsClient.disconnectPort();
+      onConfigChange(null);
+    }
   };
 
   // Auto-reconnect logic

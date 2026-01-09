@@ -40,14 +40,15 @@ type WebSocketHandler struct {
 
 // Session represents a WebSocket session
 type Session struct {
-	ID       string
-	conn     *websocket.Conn
-	connType ConnectionType
-	port     *serial.Port
-	sshClient *ssh.Client
-	send     chan []byte
-	stop     chan struct{}
-	mu       sync.Mutex
+	ID         string
+	conn       *websocket.Conn
+	connType   ConnectionType
+	port       *serial.Port
+	sshClient  *ssh.Client
+	sshSession string // SSH session ID in sshManager
+	send       chan []byte
+	stop       chan struct{}
+	mu         sync.Mutex
 }
 
 // NewWebSocketHandler creates a new WebSocket handler
@@ -68,6 +69,8 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	}
 
 	sessionID := generateSessionID()
+	log.Printf("[%s] WebSocket connection established", sessionID)
+
 	session := &Session{
 		ID:   sessionID,
 		conn: conn,
@@ -109,7 +112,7 @@ func (h *WebSocketHandler) readPump(session *Session) {
 		_, message, err := session.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
+				log.Printf("[%s] WebSocket error: %v", session.ID, err)
 			}
 			return
 		}
@@ -182,6 +185,8 @@ func (h *WebSocketHandler) handleControl(session *Session, payload json.RawMessa
 		h.handleConnect(session, ctrl.Params)
 	case "connect_ssh":
 		h.handleConnectSSH(session, ctrl.Params)
+	case "attach_ssh":
+		h.handleAttachSSH(session, ctrl.Params)
 	case "disconnect":
 		h.handleDisconnect(session)
 	case "resize":
@@ -191,6 +196,7 @@ func (h *WebSocketHandler) handleControl(session *Session, payload json.RawMessa
 	case "receive_file":
 		h.handleReceiveFile(session, ctrl.Params)
 	default:
+		log.Printf("[%s] Unknown control action: %s", session.ID, ctrl.Action)
 		h.sendError(session, "UNKNOWN_ACTION", "Unknown control action")
 	}
 }
@@ -267,9 +273,12 @@ func (h *WebSocketHandler) handleConnectSSH(session *Session, params map[string]
 	// Connect SSH
 	client, err := h.sshManager.Connect(session.ID, config)
 	if err != nil {
+		log.Printf("[%s] SSH connection failed: %v", session.ID, err)
 		h.sendError(session, "SSH_CONNECT_FAILED", err.Error())
 		return
 	}
+
+	log.Printf("[%s] SSH connected: %s@%s:%d", session.ID, config.Username, config.Host, config.Port)
 
 	// Set data handler
 	client.SetDataHandler(func(data []byte) {
@@ -301,6 +310,53 @@ func (h *WebSocketHandler) handleConnectSSH(session *Session, params map[string]
 	session.mu.Unlock()
 
 	h.sendStatus(session, "connected", "SSH connected successfully")
+}
+
+// handleAttachSSH attaches an existing SSH session to this WebSocket
+func (h *WebSocketHandler) handleAttachSSH(session *Session, params map[string]interface{}) {
+	sshSessionID, ok := params["session_id"].(string)
+	if !ok || sshSessionID == "" {
+		h.sendError(session, "INVALID_SESSION_ID", "SSH session ID required")
+		return
+	}
+
+	// Get SSH client from manager
+	client, exists := h.sshManager.Get(sshSessionID)
+	if !exists {
+		h.sendError(session, "SSH_SESSION_NOT_FOUND", "SSH session not found")
+		return
+	}
+
+	// Set data handler to forward SSH output to WebSocket
+	client.SetDataHandler(func(data []byte) {
+		encoded := base64.StdEncoding.EncodeToString(data)
+		dataPayload := ws.DataPayload{
+			Data:     encoded,
+			Encoding: "base64",
+		}
+
+		payloadJSON, _ := json.Marshal(dataPayload)
+		msg := ws.Message{
+			Type:      ws.MsgTypeData,
+			SessionID: session.ID,
+			Payload:   payloadJSON,
+			Timestamp: time.Now().UnixMilli(),
+		}
+
+		msgJSON, _ := json.Marshal(msg)
+		select {
+		case session.send <- msgJSON:
+		case <-session.stop:
+		}
+	})
+
+	session.mu.Lock()
+	session.sshClient = client
+	session.sshSession = sshSessionID
+	session.connType = ConnTypeSSH
+	session.mu.Unlock()
+
+	h.sendStatus(session, "connected", "Attached to SSH session")
 }
 
 // handleDisconnect handles port/SSH disconnection

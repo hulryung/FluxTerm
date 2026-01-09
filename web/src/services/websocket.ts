@@ -15,8 +15,25 @@ export class WebSocketClient {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Check if WebSocket is already open or connecting
       if (this.ws?.readyState === WebSocket.OPEN) {
         resolve();
+        return;
+      }
+      if (this.ws?.readyState === WebSocket.CONNECTING) {
+        // Wait for the existing connection to open
+        const onOpen = () => {
+          this.ws?.removeEventListener('open', onOpen);
+          this.ws?.removeEventListener('error', onError);
+          resolve();
+        };
+        const onError = (error: Event) => {
+          this.ws?.removeEventListener('open', onOpen);
+          this.ws?.removeEventListener('error', onError);
+          reject(error);
+        };
+        this.ws.addEventListener('open', onOpen);
+        this.ws.addEventListener('error', onError);
         return;
       }
 
@@ -43,7 +60,8 @@ export class WebSocketClient {
 
       this.ws.onclose = () => {
         console.log('WebSocket closed');
-        this.scheduleReconnect();
+        // Disable auto-reconnect for now
+        // this.scheduleReconnect();
       };
     });
   }

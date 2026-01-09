@@ -20,6 +20,7 @@ func SetupRouter(serialManager *serial.Manager, webAssets *embed.FS) *gin.Engine
 
 	// Handlers
 	serialHandler := handler.NewSerialHandler(serialManager)
+	sshHandler := handler.NewSSHHandler(sshManager)
 	wsHandler := handler.NewWebSocketHandler(serialManager, sshManager)
 
 	// Health check
@@ -46,6 +47,14 @@ func SetupRouter(serialManager *serial.Manager, webAssets *embed.FS) *gin.Engine
 			ports.GET("/:name/status", serialHandler.GetPortStatus)
 			ports.POST("/:name/dtr", serialHandler.SetDTR)
 			ports.POST("/:name/rts", serialHandler.SetRTS)
+		}
+
+		// SSH
+		ssh := api.Group("/ssh")
+		{
+			ssh.POST("/connect", sshHandler.Connect)
+			ssh.DELETE("/:session_id", sshHandler.Disconnect)
+			ssh.GET("/:session_id/status", sshHandler.Status)
 		}
 	}
 

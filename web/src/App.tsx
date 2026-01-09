@@ -16,8 +16,19 @@ function App() {
     renameSession,
   } = useSessions();
 
+  // Connect WebSocket once on mount
   useEffect(() => {
-    // Global keyboard shortcuts
+    wsClient.connect().catch((err) => {
+      console.error('Failed to connect WebSocket:', err);
+    });
+
+    return () => {
+      wsClient.disconnect();
+    };
+  }, []);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+T: New tab
       if (e.ctrlKey && e.key === 't') {
@@ -42,7 +53,6 @@ function App() {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      wsClient.disconnect();
     };
   }, [sessions, activeSessionId, createSession, closeSession, setActiveSessionId]);
 

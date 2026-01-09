@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -14,10 +15,20 @@ import (
 const (
 	defaultHost = "127.0.0.1"
 	defaultPort = "8080"
+	logFileName = "fluxterm.log"
 )
 
 func main() {
-	// Setup logger
+	// Setup logger with file output
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+	defer logFile.Close()
+
+	// Write logs to both file and stdout
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(multiWriter)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting FluxTerm server...")
 
