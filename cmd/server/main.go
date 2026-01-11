@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"fmt"
 	"io"
 	"log"
@@ -12,9 +11,6 @@ import (
 	"github.com/yourusername/fluxterm/internal/api"
 	"github.com/yourusername/fluxterm/internal/core/serial"
 )
-
-//go:embed ../../web/dist
-var webAssets embed.FS
 
 const (
 	defaultHost = "127.0.0.1"
@@ -40,13 +36,14 @@ func main() {
 	serialManager := serial.NewManager()
 	defer serialManager.CloseAll()
 
-	// Setup router with embedded web assets
-	router := api.SetupRouter(serialManager, &webAssets)
+	// Setup router without embedded assets (serve from filesystem)
+	router := api.SetupRouter(serialManager, nil)
 
 	// Start server
 	addr := fmt.Sprintf("%s:%s", getEnv("HOST", defaultHost), getEnv("PORT", defaultPort))
 	log.Printf("Server listening on http://%s", addr)
 	log.Printf("WebSocket endpoint: ws://%s/ws", addr)
+	log.Println("Note: Serving web assets from filesystem (./web/dist)")
 
 	// Graceful shutdown
 	go func() {

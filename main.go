@@ -12,6 +12,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	"github.com/yourusername/fluxterm/internal/api"
 	"github.com/yourusername/fluxterm/internal/core/serial"
@@ -62,6 +63,12 @@ func main() {
 	app := NewApp()
 
 	log.Println("Configuring Wails options...")
+
+	// Check if running in development mode
+	// wails dev always sets devMode to true via build tags
+	isDev := devMode()
+	log.Printf("Development mode: %v", isDev)
+
 	err = wails.Run(&options.App{
 		Title:     "FluxTerm - Serial & SSH Terminal",
 		Width:     1280,
@@ -79,10 +86,22 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
+		Mac: &mac.Options{
+			TitleBar: mac.TitleBarDefault(),
+			About: &mac.AboutInfo{
+				Title:   "FluxTerm",
+				Message: "© 2026 HUCONN Corporation\n\nA modern serial/SSH terminal client",
+			},
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+		},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
+		},
+		Debug: options.Debug{
+			OpenInspectorOnStartup: isDev,
 		},
 	})
 

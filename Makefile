@@ -2,7 +2,7 @@
 
 # Build configuration
 BINARY_NAME=fluxterm
-MAIN_PATH=./cmd/fluxterm
+MAIN_PATH=./cmd/server
 BUILD_DIR=.
 
 # Build the application
