@@ -1,104 +1,99 @@
-import { useState, useEffect, useRef } from 'react';
-import './SearchBar.css';
+import { useState } from 'react';
 
 interface SearchBarProps {
-  onFindNext: (term: string, caseSensitive: boolean) => boolean;
-  onFindPrevious: (term: string, caseSensitive: boolean) => boolean;
-  onClose: () => void;
   visible: boolean;
+  onFindNext: (query: string, caseSensitive: boolean) => void;
+  onFindPrevious: (query: string, caseSensitive: boolean) => void;
+  onClose: () => void;
 }
 
 export function SearchBar({
+  visible,
   onFindNext,
   onFindPrevious,
   onClose,
-  visible,
 }: SearchBarProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [query, setQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
-  const [resultInfo, setResultInfo] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (visible && inputRef.current) {
-      inputRef.current.focus();
+  if (!visible) {
+    return null;
+  }
+
+  const handleNext = () => {
+    if (query) {
+      onFindNext(query, caseSensitive);
     }
-  }, [visible]);
+  };
 
-  const handleSearch = (direction: 'next' | 'previous') => {
-    if (!searchTerm) {
-      setResultInfo('');
-      return;
+  const handlePrevious = () => {
+    if (query) {
+      onFindPrevious(query, caseSensitive);
     }
-
-    const found =
-      direction === 'next'
-        ? onFindNext(searchTerm, caseSensitive)
-        : onFindPrevious(searchTerm, caseSensitive);
-
-    setResultInfo(found ? '' : 'Not found');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSearch(e.shiftKey ? 'previous' : 'next');
+      if (e.shiftKey) {
+        handlePrevious();
+      } else {
+        handleNext();
+      }
     } else if (e.key === 'Escape') {
-      e.preventDefault();
       onClose();
     }
   };
 
-  const handleChange = (value: string) => {
-    setSearchTerm(value);
-    setResultInfo('');
-  };
-
-  if (!visible) return null;
-
   return (
-    <div className="search-bar">
+    <div className="flex items-center gap-2 px-4 py-2 bg-panel-dark border-b border-border-dark">
+      <span className="material-symbols-outlined text-[18px] text-slate-400">search</span>
+
       <input
-        ref={inputRef}
         type="text"
-        className="search-input"
-        placeholder="Find in terminal..."
-        value={searchTerm}
-        onChange={(e) => handleChange(e.target.value)}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
+        placeholder="Search..."
+        className="flex-1 bg-[#1c1f27] border border-border-dark rounded px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        autoFocus
       />
 
-      <label className="search-option">
+      <label className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white cursor-pointer">
         <input
           type="checkbox"
           checked={caseSensitive}
           onChange={(e) => setCaseSensitive(e.target.checked)}
+          className="rounded border-border-dark bg-[#1c1f27] text-primary focus:ring-primary focus:ring-offset-0"
         />
-        <span>Aa</span>
+        <span>Case sensitive</span>
       </label>
 
-      <button
-        className="search-btn"
-        onClick={() => handleSearch('previous')}
-        disabled={!searchTerm}
-        title="Previous match (Shift+Enter)"
-      >
-        ▲
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={handlePrevious}
+          disabled={!query}
+          className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Previous (Shift+Enter)"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+        </button>
+        <button
+          onClick={handleNext}
+          disabled={!query}
+          className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Next (Enter)"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
+        </button>
+      </div>
 
       <button
-        className="search-btn"
-        onClick={() => handleSearch('next')}
-        disabled={!searchTerm}
-        title="Next match (Enter)"
+        onClick={onClose}
+        className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+        title="Close (Esc)"
       >
-        ▼
-      </button>
-
-      {resultInfo && <span className="search-info">{resultInfo}</span>}
-
-      <button className="search-close" onClick={onClose} title="Close (Esc)">
-        ✕
+        <span className="material-symbols-outlined text-[18px]">close</span>
       </button>
     </div>
   );

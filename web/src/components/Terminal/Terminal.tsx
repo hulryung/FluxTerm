@@ -22,14 +22,18 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     const xterm = new XTerm({
       cursorBlink: true,
       fontSize: 14,
-      fontFamily: 'Consolas, "Courier New", monospace',
+      fontFamily: 'JetBrains Mono, Consolas, "Courier New", monospace',
       theme: {
-        background: '#1e1e1e',
+        background: '#101622',
         foreground: '#d4d4d4',
-        cursor: '#ffffff',
+        cursor: '#2b6cee',
       },
       cols: 80,
       rows: 24,
+      scrollback: 1000,
+      tabStopWidth: 8,
+      convertEol: false,
+      allowProposedApi: true,
     });
 
     // Create fit addon
@@ -87,11 +91,7 @@ export function Terminal({ onData, onResize }: TerminalProps) {
   return (
     <div
       ref={terminalRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        padding: '8px',
-      }}
+      className="w-full h-full p-2"
     />
   );
 }

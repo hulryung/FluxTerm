@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { SessionProfile } from '../../hooks/useProfiles';
 import type { SerialConfig } from '../../types/serial';
-import './ProfileManager.css';
 
 interface ProfileManagerProps {
   profiles: SessionProfile[];
@@ -47,32 +46,40 @@ export function ProfileManager({
   };
 
   return (
-    <div className="profile-manager">
-      <div className="profile-buttons">
+    <div className="mt-3">
+      <div className="flex gap-2">
         <button
-          className="profile-btn"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#3c3c3c] text-slate-300 border border-[#555] rounded transition-all text-xs hover:bg-[#464646] hover:border-[#666]"
           onClick={() => setShowProfileList(!showProfileList)}
           title="Load saved profile"
         >
-          📂 Profiles ({profiles.length})
+          <span className="material-symbols-outlined text-[16px]">folder_open</span>
+          <span>Profiles ({profiles.length})</span>
         </button>
         <button
-          className="profile-btn"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#3c3c3c] text-slate-300 border border-[#555] rounded transition-all text-xs hover:bg-[#464646] hover:border-[#666] disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={() => setShowSaveDialog(true)}
           disabled={!currentConfig}
           title="Save current configuration as profile"
         >
-          💾 Save Profile
+          <span className="material-symbols-outlined text-[16px]">save</span>
+          <span>Save Profile</span>
         </button>
       </div>
 
       {showSaveDialog && (
-        <div className="profile-dialog-overlay" onClick={() => setShowSaveDialog(false)}>
-          <div className="profile-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3>Save Profile</h3>
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[2000] animate-[fadeIn_0.2s]"
+          onClick={() => setShowSaveDialog(false)}
+        >
+          <div
+            className="bg-[#2d2d2d] border border-[#555] rounded-md p-5 min-w-[400px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] animate-[slideUp_0.2s]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="m-0 mb-4 text-slate-200 text-base">Save Profile</h3>
             <input
               type="text"
-              className="profile-input"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#555] rounded text-slate-200 text-sm outline-none box-border focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="Profile name..."
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
@@ -82,53 +89,71 @@ export function ProfileManager({
               }}
               autoFocus
             />
-            <div className="profile-dialog-buttons">
-              <button onClick={handleSave} disabled={!profileName.trim()}>
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                onClick={handleSave}
+                disabled={!profileName.trim()}
+                className="px-4 py-1.5 bg-primary border border-primary rounded cursor-pointer text-xs text-white transition-all hover:bg-[#1177bb] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 Save
               </button>
-              <button onClick={() => setShowSaveDialog(false)}>Cancel</button>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="px-4 py-1.5 bg-[#3c3c3c] text-slate-300 border border-[#555] rounded cursor-pointer text-xs transition-all hover:bg-[#464646]"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showProfileList && profiles.length > 0 && (
-        <div className="profile-list-overlay" onClick={() => setShowProfileList(false)}>
-          <div className="profile-list" onClick={(e) => e.stopPropagation()}>
-            <div className="profile-list-header">
-              <h3>Saved Profiles</h3>
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[2000] animate-[fadeIn_0.2s]"
+          onClick={() => setShowProfileList(false)}
+        >
+          <div
+            className="bg-[#2d2d2d] border border-[#555] rounded-md min-w-[500px] max-w-[700px] max-h-[80vh] shadow-[0_8px_24px_rgba(0,0,0,0.5)] animate-[slideUp_0.2s] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[#3c3c3c]">
+              <h3 className="m-0 text-slate-200 text-base">Saved Profiles</h3>
               <button
-                className="profile-close"
+                className="bg-transparent border-none text-slate-400 cursor-pointer text-xl p-0 w-6 h-6 flex items-center justify-center transition-colors hover:text-slate-200"
                 onClick={() => setShowProfileList(false)}
               >
-                ✕
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            <div className="profile-items">
+            <div className="overflow-y-auto p-2">
               {profiles.map((profile) => (
-                <div key={profile.id} className="profile-item">
-                  <div className="profile-info">
-                    <div className="profile-name">{profile.name}</div>
-                    <div className="profile-details">
+                <div
+                  key={profile.id}
+                  className="flex justify-between items-center p-3 px-4 bg-[#252525] border border-[#3c3c3c] rounded mb-2 transition-all hover:bg-[#2d2d2d] hover:border-[#555]"
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-slate-200 mb-1">{profile.name}</div>
+                    <div className="text-xs text-slate-400 mb-0.5">
                       {profile.config.port} @ {profile.config.baud_rate} baud
                     </div>
-                    <div className="profile-date">
+                    <div className="text-[11px] text-slate-500">
                       Created: {formatDate(profile.createdAt)}
                       {profile.lastUsed && (
                         <> • Last used: {formatDate(profile.lastUsed)}</>
                       )}
                     </div>
                   </div>
-                  <div className="profile-actions">
+                  <div className="flex gap-2">
                     <button
-                      className="profile-action-btn load"
+                      className="px-3 py-1.5 bg-primary border border-primary rounded cursor-pointer text-xs text-white transition-all hover:bg-[#1177bb]"
                       onClick={() => handleLoad(profile)}
                       title="Load this profile"
                     >
                       Load
                     </button>
                     <button
-                      className="profile-action-btn delete"
+                      className="px-3 py-1.5 bg-[#3c3c3c] text-slate-300 border border-[#555] rounded cursor-pointer text-xs transition-all hover:bg-red-700 hover:border-red-700"
                       onClick={() => onDeleteProfile(profile.id)}
                       title="Delete this profile"
                     >

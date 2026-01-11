@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import './HexViewer.css';
 
 interface HexViewerProps {
   onScroll?: () => void;
@@ -67,10 +66,10 @@ export function HexViewer({ onScroll }: HexViewerProps) {
       const hexPart = line.hex.join(' ').padEnd(47, ' '); // 16 bytes * 3 - 1
       const asciiPart = line.ascii.padEnd(16, ' ');
 
-      return `<div class="hex-line">
-        <span class="hex-offset">${offset}</span>
-        <span class="hex-bytes">${hexPart}</span>
-        <span class="hex-ascii">${asciiPart}</span>
+      return `<div style="display: flex; gap: 16px; line-height: 1.4; white-space: pre;">
+        <span style="color: #858585; user-select: none;">${offset}</span>
+        <span style="color: #4ec9b0; letter-spacing: 0.5px;">${hexPart}</span>
+        <span style="color: #ce9178; border-left: 1px solid #3c3c3c; padding-left: 12px;">${asciiPart}</span>
       </div>`;
     }).join('');
 
@@ -83,7 +82,7 @@ export function HexViewer({ onScroll }: HexViewerProps) {
   return (
     <div
       ref={containerRef}
-      className="hex-viewer"
+      className="w-full h-full p-2 bg-[#1e1e1e] text-slate-300 font-mono text-xs overflow-y-auto overflow-x-hidden"
       onScroll={onScroll}
     />
   );
