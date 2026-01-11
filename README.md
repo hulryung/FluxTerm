@@ -1,136 +1,227 @@
 # FluxTerm
 
-웹 기반 시리얼/SSH 터미널 클라이언트 (SecureCRT/TeraTerm 대체)
+A modern **desktop** serial/SSH terminal client - an alternative to SecureCRT and TeraTerm.
 
-## 현재 상태: Phase 1 MVP (Backend)
+> Built with Wails (Go + React) for native desktop experience on macOS, Linux, and Windows.
 
-### 완료된 기능
-- ✅ 시리얼 포트 스캔 및 관리
-- ✅ 시리얼 포트 연결/해제
-- ✅ REST API (포트 목록, 연결 제어)
-- ✅ WebSocket 실시간 통신
-- ✅ 데이터 송수신 (Base64 인코딩)
+## Features
 
-### 진행 중
-- 🔄 React 프론트엔드 개발
-- 🔄 xterm.js 터미널 UI
+### ✅ Implemented
+- 🔌 Serial port connection and management
+- 🌐 SSH client (password & key authentication)
+- 💻 xterm.js-based terminal UI
+- 📡 Real-time WebSocket communication
+- 🗂️ Multi-tab session management
+- 📁 File transfer (XMODEM protocol)
+- 💾 Profile and macro management
+- 🖥️ Cross-platform native desktop app (macOS, Linux, Windows)
 
-## 빠른 시작
+## Quick Start
 
-### 요구사항
-- Go 1.21+
-- Windows/Linux/macOS
+### Prerequisites
+- Node.js 18+
+- Go 1.25+
+- Wails 2.11+
 
-### 빌드
+### Installation (macOS)
 ```bash
-# Windows
-make build
+# Install dependencies
+brew install node go wails
 
-# Linux/macOS
-make build
-
-# 수동 빌드
-go build -o fluxterm ./cmd/fluxterm
+# Build desktop app
+./build.sh
 ```
 
-### 실행
+### Installation (Linux/Windows)
 ```bash
+# Install dependencies
+# - Node.js from https://nodejs.org/
+# - Go from https://go.dev/
+# - Wails from https://wails.io/
+
+# Build desktop app
+./build.sh
+```
+
+### Running
+
+**Desktop App (Production):**
+```bash
+# Build first
+./build.sh
+
+# Run the app
+# macOS
+open ./build/bin/FluxTerm.app
+
+# Linux
+./build/bin/fluxterm
+
+# Windows
+./build/bin/fluxterm.exe
+```
+
+**Development Mode (Recommended):**
+```bash
+# Hot reload - changes to frontend/backend automatically reload
+wails dev
+```
+
+## Usage
+
+1. **Launch FluxTerm**
+2. **Create a new session** (Ctrl+T)
+3. **Choose connection type:**
+   - Serial: Select port, configure baud rate, etc.
+   - SSH: Enter host, username, authentication method
+4. **Start using the terminal!**
+
+### Keyboard Shortcuts
+- `Ctrl+T` - New session tab
+- `Ctrl+W` - Close current tab
+- `Ctrl+Tab` - Switch between tabs
+- `Ctrl+F` - Search in terminal
+
+## Project Structure
+
+```
+FluxTerm/
+├── cmd/
+│   └── server/          # Standalone web server entry point
+├── main.go              # Wails desktop app entry point
+├── app.go               # Wails app lifecycle handlers
+├── build.sh             # Unified build script
+├── internal/
+│   ├── api/             # REST API & WebSocket handlers
+│   │   ├── router.go
+│   │   └── handler/
+│   └── core/
+│       ├── serial/      # Serial port management
+│       └── ssh/         # SSH client implementation
+├── pkg/
+│   └── protocol/
+│       ├── ws/          # WebSocket message protocol
+│       └── xmodem/      # File transfer protocol
+└── web/                 # React + TypeScript + Vite
+    ├── src/
+    │   ├── components/  # UI components
+    │   ├── hooks/       # React hooks
+    │   ├── services/    # API & WebSocket clients
+    │   └── types/       # TypeScript type definitions
+    └── dist/            # Build output
+```
+
+## Development Guide
+
+For detailed development instructions, see [CLAUDE.md](CLAUDE.md).
+
+For debugging and troubleshooting, see [DEBUGGING.md](DEBUGGING.md).
+
+### Development Mode
+
+**Recommended (Hot Reload):**
+```bash
+# Full app with hot reload
+wails dev
+
+# Open DevTools: Cmd+Option+I
+```
+
+**Alternative (Separate Frontend/Backend):**
+```bash
+# Terminal 1: Frontend dev server (http://localhost:5173)
+cd web && npm run dev
+
+# Terminal 2: Backend server
+make build && ./fluxterm
+```
+
+### Code Formatting
+```bash
+# Go
+make fmt
+
+# TypeScript/React
+cd web && npm run lint
+```
+
+### Testing
+```bash
+# Go tests
+make test
+
+# Or specific package
+go test -v ./internal/core/serial
+```
+
+## Build Options
+
+### Production Build
+```bash
+# Quick build (recommended)
+./build.sh
+
+# Manual steps
+cd web && npm run build && cd ..
+wails build
+
+# Output locations:
+# macOS: ./build/bin/FluxTerm.app
+# Linux: ./build/bin/fluxterm
+# Windows: ./build/bin/fluxterm.exe
+```
+
+### Cross-Platform Builds
+```bash
+# Build for specific platform
+wails build -platform darwin/universal  # macOS (Intel + Apple Silicon)
+wails build -platform windows/amd64     # Windows
+wails build -platform linux/amd64       # Linux
+
+# All builds will be in ./build/bin/
+```
+
+### Development Server (Backend Only)
+For backend development without running the full desktop app:
+```bash
+# Build and run standalone server
+cd web && npm run build && cd ..
+make build
 ./fluxterm
 
-# 또는 환경변수로 설정
-HOST=0.0.0.0 PORT=8080 ./fluxterm
+# The web UI will be available at http://localhost:8080
 ```
 
-서버가 시작되면:
-- HTTP: `http://localhost:8080`
-- WebSocket: `ws://localhost:8080/ws`
+## Technology Stack
 
-## API 사용 예시
+**Backend:**
+- Go 1.25+
+- Gin (HTTP router)
+- Gorilla WebSocket
+- go.bug.st/serial (serial port)
+- golang.org/x/crypto/ssh (SSH client)
 
-### 사용 가능한 포트 목록
-```bash
-curl http://localhost:8080/api/v1/ports
-```
+**Frontend:**
+- React 19
+- TypeScript 5.9
+- Vite 7
+- xterm.js (terminal emulator)
+- Zustand (state management)
+- Lucide React (icons)
 
-### 포트 열기
-```bash
-curl -X POST http://localhost:8080/api/v1/ports/open \
-  -H "Content-Type: application/json" \
-  -d '{
-    "port": "COM3",
-    "baud_rate": 115200,
-    "data_bits": 8,
-    "stop_bits": 1,
-    "parity": "none",
-    "flow_control": "none"
-  }'
-```
+**Desktop:**
+- Wails v2.11 (Go + Web UI framework)
 
-### WebSocket 연결
-```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+## License
 
-// 연결
-ws.send(JSON.stringify({
-  type: 'control',
-  payload: {
-    action: 'connect',
-    params: {
-      port: 'COM3',
-      baud_rate: 115200
-    }
-  }
-}));
-
-// 데이터 송신
-ws.send(JSON.stringify({
-  type: 'data',
-  payload: {
-    data: btoa('Hello'),  // Base64
-    encoding: 'base64'
-  }
-}));
-
-// 데이터 수신
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-  if (msg.type === 'data') {
-    console.log(atob(msg.payload.data));
-  }
-};
-```
-
-## 프로젝트 구조
-
-```
-fluxterm/
-├── cmd/fluxterm/        # 메인 애플리케이션
-├── internal/
-│   ├── api/             # REST API 및 라우터
-│   ├── core/
-│   │   └── serial/      # 시리얼 포트 관리
-│   ├── config/          # 설정 관리 (예정)
-│   └── storage/         # 데이터 저장소 (예정)
-├── pkg/
-│   └── protocol/ws/     # WebSocket 프로토콜
-├── web/                 # React 프론트엔드 (예정)
-└── documents/           # 문서
-```
-
-## 다음 단계
-
-1. React 프론트엔드 구현
-2. xterm.js 터미널 통합
-3. 세션 관리 UI
-4. 로그 저장 기능
-5. SSH 클라이언트 (Phase 2)
-
-## 라이선스
-
-MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 Copyright (c) 2026 HUCONN Corporation
 
-## 기여
+## Contributing
 
-이슈와 PR은 언제나 환영합니다!
+Issues and pull requests are always welcome!
+
+## Support
+
+For questions and support, please open an issue on GitHub.
