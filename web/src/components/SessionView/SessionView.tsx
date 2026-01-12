@@ -34,6 +34,13 @@ export function SessionView({
   useEffect(() => {
     // Handle WebSocket messages
     const unsubscribe = wsClient.onMessage((message: WSMessage) => {
+      // Only process messages for the active session
+      // Since all sessions share the same WebSocket connection,
+      // only the active session should handle incoming messages
+      if (!isActive) {
+        return;
+      }
+
       switch (message.type) {
         case 'data': {
           const payload = message.payload as DataPayload;
@@ -97,7 +104,7 @@ export function SessionView({
     return () => {
       unsubscribe();
     };
-  }, [sessionId, isActive]);
+  }, [sessionId, isActive, write, hexViewer, logger, onConnectionChange]);
 
   // Auto-reconnect logic
   useEffect(() => {
