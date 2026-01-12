@@ -34,8 +34,6 @@ export function Terminal({ onData, onResize }: TerminalProps) {
       tabStopWidth: 8,
       convertEol: false,
       allowProposedApi: true,
-      // Enable screen reader mode for better accessibility and IME support
-      screenReaderMode: false,
     });
 
     // Create fit addon
