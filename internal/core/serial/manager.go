@@ -30,9 +30,11 @@ func (m *Manager) Open(config SerialConfig) (*Port, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if port is already open
-	if _, exists := m.ports[config.Port]; exists {
-		return nil, fmt.Errorf("port %s is already open", config.Port)
+	// Check if port is already open and close it first
+	if existingPort, exists := m.ports[config.Port]; exists {
+		fmt.Printf("[Serial Manager] Port %s is already open, closing existing connection\n", config.Port)
+		existingPort.Close()
+		delete(m.ports, config.Port)
 	}
 
 	// Open the port

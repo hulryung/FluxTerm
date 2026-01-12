@@ -23,9 +23,11 @@ func (m *Manager) Connect(id string, config SSHConfig) (*Client, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if client already exists
-	if _, exists := m.clients[id]; exists {
-		return nil, fmt.Errorf("client with ID %s already exists", id)
+	// Check if client already exists and close it first
+	if existingClient, exists := m.clients[id]; exists {
+		fmt.Printf("[SSH Manager] Client with ID %s already exists, closing existing connection\n", id)
+		existingClient.Close()
+		delete(m.clients, id)
 	}
 
 	// Create new client
