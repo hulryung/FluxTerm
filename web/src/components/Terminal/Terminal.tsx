@@ -14,12 +14,11 @@ export function Terminal({ onData, onResize }: TerminalProps) {
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
-  const isComposingRef = useRef(false);
 
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Create terminal instance
+    // Create terminal instance with IME support
     const xterm = new XTerm({
       cursorBlink: true,
       fontSize: 14,
@@ -35,6 +34,8 @@ export function Terminal({ onData, onResize }: TerminalProps) {
       tabStopWidth: 8,
       convertEol: false,
       allowProposedApi: true,
+      // Enable screen reader mode for better accessibility and IME support
+      screenReaderMode: false,
     });
 
     // Create fit addon
@@ -49,54 +50,19 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     xterm.open(terminalRef.current);
     fitAddon.fit();
 
-    // Enable IME input by ensuring the textarea is properly configured
-    let compositionStartHandler: (() => void) | null = null;
-    let compositionEndHandler: ((e: Event) => void) | null = null;
+    // xterm.js has built-in IME support via CompositionHelper
+    // Just use onData - it already handles composition events correctly
+    xterm.onData((data) => {
+      onData(data);
+    });
 
+    // Ensure terminal textarea is focused for immediate input
     setTimeout(() => {
       const textareaElement = terminalRef.current?.querySelector('textarea');
       if (textareaElement) {
-        // Configure textarea for better IME support
-        textareaElement.setAttribute('autocomplete', 'off');
-        textareaElement.setAttribute('autocorrect', 'off');
-        textareaElement.setAttribute('autocapitalize', 'off');
-        textareaElement.setAttribute('spellcheck', 'false');
-
-        // Set input mode for mobile keyboards (helps with IME)
-        textareaElement.setAttribute('inputmode', 'text');
-
-        // Ensure the textarea can receive focus and input
-        textareaElement.setAttribute('aria-label', 'Terminal input');
-
-        // Handle IME composition events for Korean/Chinese/Japanese input
-        compositionStartHandler = () => {
-          isComposingRef.current = true;
-        };
-
-        compositionEndHandler = (e: Event) => {
-          isComposingRef.current = false;
-          // Send the composed text when composition is complete
-          const compositionEvent = e as CompositionEvent;
-          if (compositionEvent.data) {
-            onData(compositionEvent.data);
-          }
-        };
-
-        textareaElement.addEventListener('compositionstart', compositionStartHandler);
-        textareaElement.addEventListener('compositionend', compositionEndHandler);
-
-        // Auto-focus the terminal for immediate input
         textareaElement.focus();
       }
     }, 100);
-
-    // Handle data input - skip if composing (IME active)
-    xterm.onData((data) => {
-      // Don't send data during IME composition
-      if (!isComposingRef.current) {
-        onData(data);
-      }
-    });
 
     // Handle resize
     const handleResize = () => {
@@ -114,18 +80,6 @@ export function Terminal({ onData, onResize }: TerminalProps) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-
-      // Clean up IME event listeners
-      const textareaElement = terminalRef.current?.querySelector('textarea');
-      if (textareaElement) {
-        if (compositionStartHandler) {
-          textareaElement.removeEventListener('compositionstart', compositionStartHandler);
-        }
-        if (compositionEndHandler) {
-          textareaElement.removeEventListener('compositionend', compositionEndHandler);
-        }
-      }
-
       xterm.dispose();
     };
   }, [onData, onResize]);

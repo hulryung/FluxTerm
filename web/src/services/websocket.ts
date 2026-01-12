@@ -92,8 +92,22 @@ export class WebSocketClient {
   }
 
   sendData(data: string) {
+    // Properly encode UTF-8 strings (including Korean, Chinese, Japanese)
+    // btoa() only works with Latin1, so we need to encode UTF-8 first
+    const encoder = new TextEncoder();
+    const utf8Bytes = encoder.encode(data);
+
+    // Convert Uint8Array to binary string
+    let binaryString = '';
+    for (let i = 0; i < utf8Bytes.length; i++) {
+      binaryString += String.fromCharCode(utf8Bytes[i]);
+    }
+
+    // Now we can safely use btoa
+    const base64Data = btoa(binaryString);
+
     const payload: DataPayload = {
-      data: btoa(data),  // Base64 encode
+      data: base64Data,
       encoding: 'base64',
     };
 
