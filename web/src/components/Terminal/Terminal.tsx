@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
@@ -10,7 +10,16 @@ interface TerminalProps {
   isActive?: boolean;
 }
 
-export function Terminal({ onData, onResize, isActive = true }: TerminalProps) {
+export interface TerminalHandle {
+  write: (data: string) => void;
+  clear: () => void;
+  findNext: (term: string, caseSensitive?: boolean) => boolean;
+  findPrevious: (term: string, caseSensitive?: boolean) => boolean;
+  clearSearch: () => void;
+}
+
+export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
+  ({ onData, onResize, isActive = true }, ref) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -98,20 +107,24 @@ export function Terminal({ onData, onResize, isActive = true }: TerminalProps) {
     // Empty deps - terminal is created only once per mount
   }, []);
 
-  // Expose terminal methods
-  useEffect(() => {
-    if (xtermRef.current && searchAddonRef.current) {
-      (window as any).__terminal = {
-        write: (data: string) => xtermRef.current?.write(data),
-        clear: () => xtermRef.current?.clear(),
-        findNext: (term: string, caseSensitive?: boolean) =>
-          searchAddonRef.current?.findNext(term, { caseSensitive }),
-        findPrevious: (term: string, caseSensitive?: boolean) =>
-          searchAddonRef.current?.findPrevious(term, { caseSensitive }),
-        clearSearch: () => searchAddonRef.current?.clearDecorations(),
-      };
-    }
-  }, []);
+  // Expose terminal methods via ref
+  useImperativeHandle(ref, () => ({
+    write: (data: string) => {
+      xtermRef.current?.write(data);
+    },
+    clear: () => {
+      xtermRef.current?.clear();
+    },
+    findNext: (term: string, caseSensitive?: boolean) => {
+      return searchAddonRef.current?.findNext(term, { caseSensitive }) || false;
+    },
+    findPrevious: (term: string, caseSensitive?: boolean) => {
+      return searchAddonRef.current?.findPrevious(term, { caseSensitive }) || false;
+    },
+    clearSearch: () => {
+      searchAddonRef.current?.clearDecorations();
+    },
+  }));
 
   // Focus terminal when this session becomes active
   useEffect(() => {
@@ -129,28 +142,4 @@ export function Terminal({ onData, onResize, isActive = true }: TerminalProps) {
       className="w-full h-full p-2"
     />
   );
-}
-
-export function useTerminal() {
-  const write = (data: string) => {
-    (window as any).__terminal?.write(data);
-  };
-
-  const clear = () => {
-    (window as any).__terminal?.clear();
-  };
-
-  const findNext = (term: string, caseSensitive = false) => {
-    return (window as any).__terminal?.findNext(term, caseSensitive);
-  };
-
-  const findPrevious = (term: string, caseSensitive = false) => {
-    return (window as any).__terminal?.findPrevious(term, caseSensitive);
-  };
-
-  const clearSearch = () => {
-    (window as any).__terminal?.clearSearch();
-  };
-
-  return { write, clear, findNext, findPrevious, clearSearch };
-}
+});

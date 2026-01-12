@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Terminal, useTerminal } from '../Terminal/Terminal';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Terminal, type TerminalHandle } from '../Terminal/Terminal';
 import { TerminalToolbar, type DisplayMode } from '../Terminal/TerminalToolbar';
 import { SearchBar } from '../Terminal/SearchBar';
 import { HexViewer, useHexViewer } from '../HexViewer/HexViewer';
@@ -27,7 +27,7 @@ export function SessionView({
   const [autoReconnect] = useState(false);
   const [lastConfig] = useState<SerialConfig | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const { write, clear, findNext, findPrevious, clearSearch } = useTerminal();
+  const terminalRef = useRef<TerminalHandle>(null);
   const hexViewer = useHexViewer();
   const logger = useLogger();
 
@@ -56,7 +56,7 @@ export function SessionView({
             const decoder = new TextDecoder('utf-8');
             const decoded = decoder.decode(bytes);
 
-            write(decoded);
+            terminalRef.current?.write(decoded);
             hexViewer.addData(binaryString); // HexViewer uses raw bytes
             logger.addLog(decoded);
           } catch (err) {
@@ -83,18 +83,18 @@ export function SessionView({
 
         case 'error': {
           const payload = message.payload as ErrorPayload;
-          write(`\r\n[ERROR] ${payload.message}\r\n`);
+          terminalRef.current?.write(`\r\n[ERROR] ${payload.message}\r\n`);
           break;
         }
 
         case 'file_transfer': {
           const payload = message.payload as any;
           if (payload.action === 'start') {
-            write(`\r\n[FILE TRANSFER] ${payload.message}\r\n`);
+            terminalRef.current?.write(`\r\n[FILE TRANSFER] ${payload.message}\r\n`);
           } else if (payload.action === 'complete') {
-            write(`\r\n[FILE TRANSFER] ${payload.file_name} - Transfer complete\r\n`);
+            terminalRef.current?.write(`\r\n[FILE TRANSFER] ${payload.file_name} - Transfer complete\r\n`);
           } else if (payload.action === 'error') {
-            write(`\r\n[FILE TRANSFER ERROR] ${payload.error}\r\n`);
+            terminalRef.current?.write(`\r\n[FILE TRANSFER ERROR] ${payload.error}\r\n`);
           }
           break;
         }
@@ -104,7 +104,7 @@ export function SessionView({
     return () => {
       unsubscribe();
     };
-  }, [sessionId, isActive, write, hexViewer, logger, onConnectionChange]);
+  }, [sessionId, isActive, hexViewer, logger, onConnectionChange]);
 
   // Auto-reconnect logic
   useEffect(() => {
@@ -141,21 +141,29 @@ export function SessionView({
   }, [connected]);
 
   const handleClearDisplay = useCallback(() => {
-    clear();
+    terminalRef.current?.clear();
     hexViewer.clear();
-  }, [clear, hexViewer]);
+  }, [hexViewer]);
 
   const handleToggleSearch = useCallback(() => {
     setSearchVisible(!searchVisible);
     if (searchVisible) {
-      clearSearch();
+      terminalRef.current?.clearSearch();
     }
-  }, [searchVisible, clearSearch]);
+  }, [searchVisible]);
 
   const handleSearchClose = useCallback(() => {
     setSearchVisible(false);
-    clearSearch();
-  }, [clearSearch]);
+    terminalRef.current?.clearSearch();
+  }, []);
+
+  const handleFindNext = useCallback((term: string, caseSensitive?: boolean) => {
+    return terminalRef.current?.findNext(term, caseSensitive) || false;
+  }, []);
+
+  const handleFindPrevious = useCallback((term: string, caseSensitive?: boolean) => {
+    return terminalRef.current?.findPrevious(term, caseSensitive) || false;
+  }, []);
 
   return (
     <div
@@ -180,8 +188,8 @@ export function SessionView({
       {displayMode === 'terminal' && (
         <SearchBar
           visible={searchVisible}
-          onFindNext={findNext}
-          onFindPrevious={findPrevious}
+          onFindNext={handleFindNext}
+          onFindPrevious={handleFindPrevious}
           onClose={handleSearchClose}
         />
       )}
@@ -189,7 +197,12 @@ export function SessionView({
       {/* Terminal or Hex Viewer */}
       <div className="flex-1 overflow-hidden">
         {displayMode === 'terminal' ? (
-          <Terminal onData={handleTerminalData} onResize={handleTerminalResize} isActive={isActive} />
+          <Terminal
+            ref={terminalRef}
+            onData={handleTerminalData}
+            onResize={handleTerminalResize}
+            isActive={isActive}
+          />
         ) : (
           <HexViewer />
         )}
