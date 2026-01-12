@@ -122,12 +122,17 @@ export function SessionView({
   }, [connected, autoReconnect, lastConfig, reconnectAttempts, sessionId]);
 
   const handleTerminalData = useCallback((data: string) => {
+    // Only send data from the active session
+    if (!isActive) {
+      return;
+    }
+
     if (connected) {
       wsClient.sendData(data);
     } else {
       console.warn('[SessionView] Not connected - input ignored:', data.charCodeAt(0));
     }
-  }, [connected]);
+  }, [connected, isActive]);
 
   const handleTerminalResize = useCallback((cols: number, rows: number) => {
     if (connected) {
@@ -184,7 +189,7 @@ export function SessionView({
       {/* Terminal or Hex Viewer */}
       <div className="flex-1 overflow-hidden">
         {displayMode === 'terminal' ? (
-          <Terminal onData={handleTerminalData} onResize={handleTerminalResize} />
+          <Terminal onData={handleTerminalData} onResize={handleTerminalResize} isActive={isActive} />
         ) : (
           <HexViewer />
         )}

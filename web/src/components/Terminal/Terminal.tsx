@@ -7,9 +7,10 @@ import '@xterm/xterm/css/xterm.css';
 interface TerminalProps {
   onData: (data: string) => void;
   onResize?: (cols: number, rows: number) => void;
+  isActive?: boolean;
 }
 
-export function Terminal({ onData, onResize }: TerminalProps) {
+export function Terminal({ onData, onResize, isActive = true }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -66,13 +67,15 @@ export function Terminal({ onData, onResize }: TerminalProps) {
       onDataRef.current(data);
     });
 
-    // Ensure terminal textarea is focused for immediate input
-    setTimeout(() => {
-      const textareaElement = terminalRef.current?.querySelector('textarea');
-      if (textareaElement) {
-        textareaElement.focus();
-      }
-    }, 100);
+    // Focus terminal textarea only if this is the active session
+    if (isActive) {
+      setTimeout(() => {
+        const textareaElement = terminalRef.current?.querySelector('textarea');
+        if (textareaElement) {
+          textareaElement.focus();
+        }
+      }, 100);
+    }
 
     // Handle resize
     const handleResize = () => {
@@ -109,6 +112,16 @@ export function Terminal({ onData, onResize }: TerminalProps) {
       };
     }
   }, []);
+
+  // Focus terminal when this session becomes active
+  useEffect(() => {
+    if (isActive && terminalRef.current) {
+      const textareaElement = terminalRef.current.querySelector('textarea');
+      if (textareaElement) {
+        textareaElement.focus();
+      }
+    }
+  }, [isActive]);
 
   return (
     <div
