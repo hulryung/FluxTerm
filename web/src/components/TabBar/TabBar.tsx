@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Session } from '../../hooks/useSessions';
+import { isSerialConfig } from '../../types/connection';
 
 interface TabBarProps {
   sessions: Session[];
@@ -110,7 +111,11 @@ export function TabBar({
               ) : (
                 <span
                   className="text-xs font-medium truncate flex-1"
-                  title={session.config?.port || session.name}
+                  title={
+                    session.config && isSerialConfig(session.config)
+                      ? session.config.config.port
+                      : session.name
+                  }
                 >
                   {session.name}
                 </span>

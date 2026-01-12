@@ -15,6 +15,8 @@ import { useMacros, type Macro } from './hooks/useMacros';
 import { wsClient } from './services/websocket';
 import type { SSHConfig } from './components/SSHConnector/SSHConnector';
 import type { SerialConfig } from './types/serial';
+import type { ConnectionConfig } from './types/connection';
+import { isSerialConfig, isSSHConfig } from './types/connection';
 
 function App() {
   const {
@@ -31,12 +33,10 @@ function App() {
     showCommandPalette,
     showConnectionPanel,
     showAutomationPanel,
-    activeAutomationTab,
     activeSidebarView,
     toggleCommandPalette,
     closeCommandPalette,
     setSidebarView,
-    setAutomationTab,
     closeAllPanels,
   } = useUIState();
 
@@ -66,13 +66,13 @@ function App() {
   // Connection handlers
   const handleSerialConnect = (config: SerialConfig, _autoReconnect: boolean) => {
     wsClient.connectPort(config);
-    updateSession(activeSessionId, { config, connected: false }); // Will be set to true on status message
+    updateSession(activeSessionId, { config: { type: 'serial', config }, connected: false }); // Will be set to true on status message
     closeAllPanels();
   };
 
   const handleSSHConnect = (config: SSHConfig) => {
     wsClient.connectSSH(config as unknown as Record<string, unknown>);
-    updateSession(activeSessionId, { connected: false }); // Will be set to true on status message
+    updateSession(activeSessionId, { config: { type: 'ssh', config }, connected: false }); // Will be set to true on status message
     closeAllPanels();
   };
 
@@ -82,9 +82,18 @@ function App() {
   };
 
   // Profile handlers
+  const handleSaveProfile = (name: string, config: ConnectionConfig) => {
+    saveProfile(name, config);
+  };
+
   const handleLoadProfile = (profile: SessionProfile) => {
     updateProfileLastUsed(profile.id);
-    handleSerialConnect(profile.config, false);
+
+    if (isSerialConfig(profile.config)) {
+      handleSerialConnect(profile.config.config, false);
+    } else if (isSSHConfig(profile.config)) {
+      handleSSHConnect(profile.config.config);
+    }
   };
 
   // Macro handlers
@@ -229,6 +238,10 @@ function App() {
             onSerialConnect={handleSerialConnect}
             onSSHConnect={handleSSHConnect}
             onDisconnect={handleDisconnect}
+            profiles={profiles}
+            onSaveProfile={handleSaveProfile}
+            onLoadProfile={handleLoadProfile}
+            onDeleteProfile={deleteProfile}
           />
 
           {/* Center Terminal Area */}
@@ -251,26 +264,25 @@ function App() {
           {/* Automation Panel (Right Slide-in) */}
           <AutomationPanel
             visible={showAutomationPanel}
-            tab={activeAutomationTab}
             onClose={() => setSidebarView(null)}
-            onTabChange={setAutomationTab}
             macros={macros}
             onSaveMacro={saveMacro}
             onUpdateMacro={updateMacro}
             onDeleteMacro={deleteMacro}
             onExecuteMacro={handleExecuteMacro}
-            profiles={profiles}
-            onSaveProfile={saveProfile}
-            onLoadProfile={handleLoadProfile}
-            onDeleteProfile={deleteProfile}
-            currentConfig={activeSession?.config || null}
           />
         </div>
 
         {/* Bottom Status Bar */}
         <StatusBar
           connected={activeSession?.connected || false}
-          connectionType={activeSession?.config ? 'serial' : null}
+          connectionType={
+            activeSession?.config
+              ? isSerialConfig(activeSession.config)
+                ? 'serial'
+                : 'ssh'
+              : null
+          }
           config={activeSession?.config || null}
         />
 

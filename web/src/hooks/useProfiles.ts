@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { SerialConfig } from '../types/serial';
+import type { ConnectionConfig } from '../types/connection';
 
 export interface SessionProfile {
   id: string;
   name: string;
-  config: SerialConfig;
+  config: ConnectionConfig;
   createdAt: string;
   lastUsed?: string;
 }
@@ -14,13 +14,24 @@ const STORAGE_KEY = 'fluxterm_session_profiles';
 export function useProfiles() {
   const [profiles, setProfiles] = useState<SessionProfile[]>([]);
 
-  // Load profiles from localStorage on mount
+  // Load profiles from localStorage on mount with migration support
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setProfiles(parsed);
+        // Migration: old format (SerialConfig only) to new format (ConnectionConfig)
+        const migrated = parsed.map((p: any) => {
+          if (!p.config.type) {
+            // Old format: assume serial and wrap in discriminated union
+            return {
+              ...p,
+              config: { type: 'serial', config: p.config },
+            };
+          }
+          return p;
+        });
+        setProfiles(migrated);
       }
     } catch (err) {
       console.error('Failed to load profiles:', err);
@@ -36,7 +47,7 @@ export function useProfiles() {
     }
   }, [profiles]);
 
-  const saveProfile = (name: string, config: SerialConfig): SessionProfile => {
+  const saveProfile = (name: string, config: ConnectionConfig): SessionProfile => {
     const newProfile: SessionProfile = {
       id: Date.now().toString(),
       name,
@@ -48,7 +59,7 @@ export function useProfiles() {
     return newProfile;
   };
 
-  const updateProfile = (id: string, name: string, config: SerialConfig) => {
+  const updateProfile = (id: string, name: string, config: ConnectionConfig) => {
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === id

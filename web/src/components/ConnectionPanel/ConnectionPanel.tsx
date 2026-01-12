@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { PortSelector } from '../PortSelector/PortSelector';
 import { SSHConnector, type SSHConfig } from '../SSHConnector/SSHConnector';
+import { ProfileManager } from '../ProfileManager/ProfileManager';
 import type { SerialConfig } from '../../types/serial';
+import type { SessionProfile } from '../../hooks/useProfiles';
+import type { ConnectionConfig } from '../../types/connection';
 
 interface ConnectionPanelProps {
   visible: boolean;
@@ -10,6 +13,11 @@ interface ConnectionPanelProps {
   onSerialConnect: (config: SerialConfig, autoReconnect: boolean) => void;
   onSSHConnect: (config: SSHConfig) => void;
   onDisconnect: () => void;
+  // Profile management props
+  profiles: SessionProfile[];
+  onSaveProfile: (name: string, config: ConnectionConfig) => void;
+  onLoadProfile: (profile: SessionProfile) => void;
+  onDeleteProfile: (id: string) => void;
 }
 
 export function ConnectionPanel({
@@ -19,8 +27,22 @@ export function ConnectionPanel({
   onSerialConnect,
   onSSHConnect,
   onDisconnect,
+  profiles,
+  onSaveProfile,
+  onLoadProfile,
+  onDeleteProfile,
 }: ConnectionPanelProps) {
   const [mode, setMode] = useState<'serial' | 'ssh'>('serial');
+  const [activeTab, setActiveTab] = useState<'connection' | 'profiles'>('connection');
+
+  // Wrapper functions to convert to ConnectionConfig
+  const handleSaveSerialProfile = (name: string, config: SerialConfig) => {
+    onSaveProfile(name, { type: 'serial', config });
+  };
+
+  const handleSaveSSHProfile = (name: string, config: SSHConfig) => {
+    onSaveProfile(name, { type: 'ssh', config });
+  };
 
   if (!visible) return null;
 
@@ -45,54 +67,91 @@ export function ConnectionPanel({
           </button>
         </div>
 
-        {/* Connection Type Tabs */}
-        <div className="bg-[#1c1f27] p-1 rounded-lg flex border border-border-dark">
-          <label className="flex-1 cursor-pointer">
-            <input
-              type="radio"
-              name="conn_type"
-              value="serial"
-              checked={mode === 'serial'}
-              onChange={() => setMode('serial')}
-              className="sr-only peer"
-            />
-            <div className="flex items-center justify-center py-2 px-3 rounded text-sm font-medium text-slate-400 transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-sm">
-              <span className="material-symbols-outlined text-[18px] mr-2">usb</span>
-              Serial
-            </div>
-          </label>
-          <label className="flex-1 cursor-pointer">
-            <input
-              type="radio"
-              name="conn_type"
-              value="ssh"
-              checked={mode === 'ssh'}
-              onChange={() => setMode('ssh')}
-              className="sr-only peer"
-            />
-            <div className="flex items-center justify-center py-2 px-3 rounded text-sm font-medium text-slate-400 transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-sm">
-              <span className="material-symbols-outlined text-[18px] mr-2">terminal</span>
-              SSH
-            </div>
-          </label>
+        {/* Connection/Profiles Tabs */}
+        <div className="flex p-1 bg-[#111318] rounded-lg">
+          <button
+            onClick={() => setActiveTab('connection')}
+            className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'connection'
+                ? 'bg-[#282e39] text-white shadow-sm ring-1 ring-white/5'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Connection
+          </button>
+          <button
+            onClick={() => setActiveTab('profiles')}
+            className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'profiles'
+                ? 'bg-[#282e39] text-white shadow-sm ring-1 ring-white/5'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Profiles
+          </button>
         </div>
 
-        {/* Content area */}
-        <div>
-          {mode === 'serial' ? (
-            <PortSelector
-              onConnect={onSerialConnect}
-              onDisconnect={onDisconnect}
-              connected={connected}
-            />
-          ) : (
-            <SSHConnector
-              onConnect={onSSHConnect}
-              onDisconnect={onDisconnect}
-              connected={connected}
-            />
-          )}
-        </div>
+        {/* Tab Content */}
+        {activeTab === 'connection' ? (
+          <>
+            {/* Connection Type Tabs */}
+            <div className="bg-[#1c1f27] p-1 rounded-lg flex border border-border-dark">
+              <label className="flex-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="conn_type"
+                  value="serial"
+                  checked={mode === 'serial'}
+                  onChange={() => setMode('serial')}
+                  className="sr-only peer"
+                />
+                <div className="flex items-center justify-center py-2 px-3 rounded text-sm font-medium text-slate-400 transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-sm">
+                  <span className="material-symbols-outlined text-[18px] mr-2">usb</span>
+                  Serial
+                </div>
+              </label>
+              <label className="flex-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name="conn_type"
+                  value="ssh"
+                  checked={mode === 'ssh'}
+                  onChange={() => setMode('ssh')}
+                  className="sr-only peer"
+                />
+                <div className="flex items-center justify-center py-2 px-3 rounded text-sm font-medium text-slate-400 transition-all peer-checked:bg-primary peer-checked:text-white peer-checked:shadow-sm">
+                  <span className="material-symbols-outlined text-[18px] mr-2">terminal</span>
+                  SSH
+                </div>
+              </label>
+            </div>
+
+            {/* Connection Forms */}
+            <div>
+              {mode === 'serial' ? (
+                <PortSelector
+                  onConnect={onSerialConnect}
+                  onDisconnect={onDisconnect}
+                  connected={connected}
+                  onSaveAsProfile={handleSaveSerialProfile}
+                />
+              ) : (
+                <SSHConnector
+                  onConnect={onSSHConnect}
+                  onDisconnect={onDisconnect}
+                  connected={connected}
+                  onSaveAsProfile={handleSaveSSHProfile}
+                />
+              )}
+            </div>
+          </>
+        ) : (
+          <ProfileManager
+            profiles={profiles}
+            onLoadProfile={onLoadProfile}
+            onDeleteProfile={onDeleteProfile}
+          />
+        )}
       </div>
     </aside>
   );

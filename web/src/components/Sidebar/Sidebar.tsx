@@ -13,7 +13,6 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   { id: 'connection', icon: 'wifi', label: 'Connection' },
-  { id: 'profiles', icon: 'person', label: 'Profiles' },
   { id: 'macros', icon: 'play_arrow', label: 'Macros' },
   { id: 'logs', icon: 'description', label: 'Logs' },
   { id: 'files', icon: 'folder', label: 'Files' },

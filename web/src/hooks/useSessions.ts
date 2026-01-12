@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
-import type { SerialConfig } from '../types/serial';
+import type { ConnectionConfig } from '../types/connection';
 
 export interface Session {
   id: string;
   name: string;
   connected: boolean;
-  config: SerialConfig | null;
+  config: ConnectionConfig | null;
   createdAt: number;
 }
 

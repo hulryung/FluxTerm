@@ -1,9 +1,10 @@
-import type { SerialConfig } from '../../types/serial';
+import type { ConnectionConfig } from '../../types/connection';
+import { isSerialConfig, isSSHConfig } from '../../types/connection';
 
 interface StatusBarProps {
   connected: boolean;
   connectionType: 'serial' | 'ssh' | null;
-  config: SerialConfig | null;
+  config: ConnectionConfig | null;
   encoding?: string;
   terminalType?: string;
 }
@@ -18,35 +19,39 @@ export function StatusBar({
   return (
     <footer className="h-7 bg-primary text-white flex items-center px-3 text-xs gap-4 select-none shadow-inner font-body">
       {/* Connection info (only show if serial) */}
-      {connectionType === 'serial' && config && (
+      {config && isSerialConfig(config) && (
         <>
           <div className="flex items-center gap-2 hover:bg-white/10 px-2 rounded cursor-pointer h-full">
             <span className="material-symbols-outlined text-[14px]">usb</span>
-            <span className="font-medium">{config.port || 'No Port'}</span>
+            <span className="font-medium">{config.config.port || 'No Port'}</span>
           </div>
 
           <div className="flex items-center gap-2 hover:bg-white/10 px-2 rounded cursor-pointer h-full">
             <span className="material-symbols-outlined text-[14px]">speed</span>
-            <span>{config.baud_rate}</span>
+            <span>{config.config.baud_rate}</span>
           </div>
 
           <div className="flex items-center gap-2 hover:bg-white/10 px-2 rounded cursor-pointer h-full">
             <span className="material-symbols-outlined text-[14px]">tune</span>
             <span>
-              {config.data_bits}-
-              {config.parity === 'none' ? 'N' : config.parity === 'odd' ? 'O' : 'E'}-
-              {config.stop_bits}
+              {config.config.data_bits}-
+              {config.config.parity === 'none' ? 'N' : config.config.parity === 'odd' ? 'O' : 'E'}-
+              {config.config.stop_bits}
             </span>
           </div>
         </>
       )}
 
       {/* SSH info */}
-      {connectionType === 'ssh' && (
-        <div className="flex items-center gap-2 hover:bg-white/10 px-2 rounded cursor-pointer h-full">
-          <span className="material-symbols-outlined text-[14px]">lock</span>
-          <span className="font-medium">SSH</span>
-        </div>
+      {config && isSSHConfig(config) && (
+        <>
+          <div className="flex items-center gap-2 hover:bg-white/10 px-2 rounded cursor-pointer h-full">
+            <span className="material-symbols-outlined text-[14px]">lock</span>
+            <span className="font-medium">
+              {config.config.username}@{config.config.host}:{config.config.port}
+            </span>
+          </div>
+        </>
       )}
 
       {/* Terminal type */}

@@ -2,16 +2,15 @@ import { useState, useEffect } from 'react';
 import type { PortInfo, SerialConfig } from '../../types/serial';
 import { DEFAULT_CONFIG, BAUD_RATES } from '../../types/serial';
 import { apiClient } from '../../services/api';
-import { ProfileManager } from '../ProfileManager/ProfileManager';
-import { useProfiles, type SessionProfile } from '../../hooks/useProfiles';
 
 interface PortSelectorProps {
   onConnect: (config: SerialConfig, autoReconnect: boolean) => void;
   onDisconnect: () => void;
   connected: boolean;
+  onSaveAsProfile?: (name: string, config: SerialConfig) => void;
 }
 
-export function PortSelector({ onConnect, onDisconnect, connected }: PortSelectorProps) {
+export function PortSelector({ onConnect, onDisconnect, connected, onSaveAsProfile }: PortSelectorProps) {
   const [ports, setPorts] = useState<PortInfo[]>([]);
   const [selectedPort, setSelectedPort] = useState<string>('');
   const [config, setConfig] = useState(DEFAULT_CONFIG);
@@ -20,8 +19,8 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
   const [dtrState, setDtrState] = useState(false);
   const [rtsState, setRtsState] = useState(false);
   const [autoReconnect, setAutoReconnect] = useState(true);
-
-  const { profiles, saveProfile, deleteProfile, updateLastUsed } = useProfiles();
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [profileName, setProfileName] = useState('');
 
   useEffect(() => {
     loadPorts();
@@ -54,29 +53,23 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
     onConnect(fullConfig, autoReconnect);
   };
 
-  const handleSaveProfile = (name: string, profileConfig: SerialConfig) => {
-    saveProfile(name, profileConfig);
-  };
+  const handleSaveProfile = () => {
+    if (!selectedPort || !profileName.trim()) {
+      setError('Port and profile name are required');
+      return;
+    }
 
-  const handleLoadProfile = (profile: SessionProfile) => {
-    setSelectedPort(profile.config.port);
-    setConfig({
-      baud_rate: profile.config.baud_rate,
-      data_bits: profile.config.data_bits,
-      stop_bits: profile.config.stop_bits,
-      parity: profile.config.parity,
-      flow_control: profile.config.flow_control,
-    });
-    updateLastUsed(profile.id);
-  };
-
-  const getCurrentConfig = (): SerialConfig | null => {
-    if (!selectedPort) return null;
-    return {
+    const fullConfig: SerialConfig = {
       port: selectedPort,
       ...config,
     };
+
+    onSaveAsProfile?.(profileName, fullConfig);
+    setProfileName('');
+    setShowSaveDialog(false);
+    setError(null);
   };
+
 
   const handleDTRToggle = async () => {
     if (!connected || !selectedPort) return;
@@ -234,7 +227,7 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
         </div>
       </div>
 
-      <div className="flex gap-2.5 justify-end">
+      <div className="flex flex-col gap-2.5">
         {connected ? (
           <button
             className="px-6 py-2.5 border-none rounded-md text-[15px] font-semibold cursor-pointer transition-all bg-red-700 text-white hover:bg-red-600"
@@ -243,13 +236,25 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
             Disconnect
           </button>
         ) : (
-          <button
-            className="px-6 py-2.5 border-none rounded-md text-[15px] font-semibold cursor-pointer transition-all bg-primary text-white hover:bg-[#1177bb] disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleConnect}
-            disabled={!selectedPort || loading}
-          >
-            Connect
-          </button>
+          <>
+            <button
+              className="px-6 py-2.5 border-none rounded-md text-[15px] font-semibold cursor-pointer transition-all bg-primary text-white hover:bg-[#1177bb] disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleConnect}
+              disabled={!selectedPort || loading}
+            >
+              Connect
+            </button>
+
+            {onSaveAsProfile && (
+              <button
+                className="px-6 py-2.5 border border-[#555] rounded-md text-[15px] font-semibold cursor-pointer transition-all bg-[#2d2d2d] text-slate-300 hover:bg-[#3c3c3c] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowSaveDialog(true)}
+                disabled={!selectedPort || loading}
+              >
+                Save as Profile
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -285,13 +290,54 @@ export function PortSelector({ onConnect, onDisconnect, connected }: PortSelecto
         </div>
       )}
 
-      <ProfileManager
-        profiles={profiles}
-        onSaveProfile={handleSaveProfile}
-        onLoadProfile={handleLoadProfile}
-        onDeleteProfile={deleteProfile}
-        currentConfig={getCurrentConfig()}
-      />
+      {/* Save Profile Dialog */}
+      {showSaveDialog && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[2000] animate-[fadeIn_0.2s]"
+          onClick={() => setShowSaveDialog(false)}
+        >
+          <div
+            className="bg-[#2d2d2d] border border-[#555] rounded-md p-5 min-w-[400px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] animate-[slideUp_0.2s]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="m-0 mb-4 text-slate-200 text-lg">Save Serial Profile</h3>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-400">Profile Name:</label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="e.g., Arduino Uno, ESP32, Raspberry Pi, etc."
+                  className="px-3 py-2 bg-[#1e1e1e] border border-[#555] rounded text-slate-200 text-sm font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+              </div>
+
+              <div className="p-2.5 bg-[#1e1e1e] border-l-[3px] border-l-primary text-xs text-slate-400">
+                This will save the current serial settings ({selectedPort} @ {config.baud_rate} baud) as a reusable profile.
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                onClick={handleSaveProfile}
+                disabled={!profileName.trim()}
+                className="px-5 py-2 bg-primary border border-primary rounded cursor-pointer text-xs text-white transition-all hover:bg-[#1177bb] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="px-5 py-2 bg-[#3c3c3c] text-slate-300 border border-[#555] rounded cursor-pointer text-xs transition-all hover:bg-[#464646]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

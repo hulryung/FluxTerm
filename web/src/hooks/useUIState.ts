@@ -1,13 +1,11 @@
 import { useState } from 'react';
 
-export type SidebarView = 'connection' | 'profiles' | 'macros' | 'logs' | 'files' | 'settings';
-export type AutomationTab = 'profiles' | 'macros';
+export type SidebarView = 'connection' | 'macros' | 'logs' | 'files' | 'settings';
 
 interface UIState {
   showCommandPalette: boolean;
   showConnectionPanel: boolean;
   showAutomationPanel: boolean;
-  activeAutomationTab: AutomationTab;
   activeSidebarView: SidebarView | null;
 }
 
@@ -16,7 +14,6 @@ export function useUIState() {
     showCommandPalette: false,
     showConnectionPanel: false,
     showAutomationPanel: false,
-    activeAutomationTab: 'profiles',
     activeSidebarView: null,
   });
 
@@ -64,21 +61,19 @@ export function useUIState() {
     }));
   };
 
-  const toggleAutomationPanel = (tab?: AutomationTab) => {
+  const toggleAutomationPanel = () => {
     setUIState((prev) => ({
       ...prev,
       showAutomationPanel: !prev.showAutomationPanel,
       showConnectionPanel: false, // Close connection panel when opening automation
-      activeAutomationTab: tab || prev.activeAutomationTab,
     }));
   };
 
-  const openAutomationPanel = (tab: AutomationTab) => {
+  const openAutomationPanel = () => {
     setUIState((prev) => ({
       ...prev,
       showAutomationPanel: true,
       showConnectionPanel: false,
-      activeAutomationTab: tab,
     }));
   };
 
@@ -86,13 +81,6 @@ export function useUIState() {
     setUIState((prev) => ({
       ...prev,
       showAutomationPanel: false,
-    }));
-  };
-
-  const setAutomationTab = (tab: AutomationTab) => {
-    setUIState((prev) => ({
-      ...prev,
-      activeAutomationTab: tab,
     }));
   };
 
@@ -116,21 +104,12 @@ export function useUIState() {
           showConnectionPanel: true,
           showAutomationPanel: false,
         };
-      } else if (view === 'profiles') {
-        return {
-          ...prev,
-          activeSidebarView: view,
-          showAutomationPanel: true,
-          showConnectionPanel: false,
-          activeAutomationTab: 'profiles',
-        };
       } else if (view === 'macros') {
         return {
           ...prev,
           activeSidebarView: view,
           showAutomationPanel: true,
           showConnectionPanel: false,
-          activeAutomationTab: 'macros',
         };
       }
 
@@ -162,7 +141,6 @@ export function useUIState() {
     toggleAutomationPanel,
     openAutomationPanel,
     closeAutomationPanel,
-    setAutomationTab,
     setSidebarView,
     closeAllPanels,
   };

@@ -7,12 +7,13 @@ import { wsClient } from '../../services/websocket';
 import { useLogger } from '../../hooks/useLogger';
 import type { WSMessage, DataPayload, StatusPayload, ErrorPayload } from '../../types/message';
 import type { SerialConfig } from '../../types/serial';
+import type { ConnectionConfig } from '../../types/connection';
 
 interface SessionViewProps {
   sessionId: string;
   isActive: boolean;
   onConnectionChange: (connected: boolean) => void;
-  onConfigChange: (config: SerialConfig | null) => void;
+  onConfigChange: (config: ConnectionConfig | null) => void;
 }
 
 export function SessionView({
