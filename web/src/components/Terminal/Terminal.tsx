@@ -14,6 +14,7 @@ export function Terminal({ onData, onResize }: TerminalProps) {
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
+  const isComposingRef = useRef(false);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -49,6 +50,9 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     fitAddon.fit();
 
     // Enable IME input by ensuring the textarea is properly configured
+    let compositionStartHandler: (() => void) | null = null;
+    let compositionEndHandler: ((e: Event) => void) | null = null;
+
     setTimeout(() => {
       const textareaElement = terminalRef.current?.querySelector('textarea');
       if (textareaElement) {
@@ -64,14 +68,34 @@ export function Terminal({ onData, onResize }: TerminalProps) {
         // Ensure the textarea can receive focus and input
         textareaElement.setAttribute('aria-label', 'Terminal input');
 
+        // Handle IME composition events for Korean/Chinese/Japanese input
+        compositionStartHandler = () => {
+          isComposingRef.current = true;
+        };
+
+        compositionEndHandler = (e: Event) => {
+          isComposingRef.current = false;
+          // Send the composed text when composition is complete
+          const compositionEvent = e as CompositionEvent;
+          if (compositionEvent.data) {
+            onData(compositionEvent.data);
+          }
+        };
+
+        textareaElement.addEventListener('compositionstart', compositionStartHandler);
+        textareaElement.addEventListener('compositionend', compositionEndHandler);
+
         // Auto-focus the terminal for immediate input
         textareaElement.focus();
       }
     }, 100);
 
-    // Handle data input
+    // Handle data input - skip if composing (IME active)
     xterm.onData((data) => {
-      onData(data);
+      // Don't send data during IME composition
+      if (!isComposingRef.current) {
+        onData(data);
+      }
     });
 
     // Handle resize
@@ -90,6 +114,18 @@ export function Terminal({ onData, onResize }: TerminalProps) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+
+      // Clean up IME event listeners
+      const textareaElement = terminalRef.current?.querySelector('textarea');
+      if (textareaElement) {
+        if (compositionStartHandler) {
+          textareaElement.removeEventListener('compositionstart', compositionStartHandler);
+        }
+        if (compositionEndHandler) {
+          textareaElement.removeEventListener('compositionend', compositionEndHandler);
+        }
+      }
+
       xterm.dispose();
     };
   }, [onData, onResize]);
