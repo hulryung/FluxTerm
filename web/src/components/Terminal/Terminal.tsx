@@ -48,6 +48,27 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     xterm.open(terminalRef.current);
     fitAddon.fit();
 
+    // Enable IME input by ensuring the textarea is properly configured
+    setTimeout(() => {
+      const textareaElement = terminalRef.current?.querySelector('textarea');
+      if (textareaElement) {
+        // Configure textarea for better IME support
+        textareaElement.setAttribute('autocomplete', 'off');
+        textareaElement.setAttribute('autocorrect', 'off');
+        textareaElement.setAttribute('autocapitalize', 'off');
+        textareaElement.setAttribute('spellcheck', 'false');
+
+        // Set input mode for mobile keyboards (helps with IME)
+        textareaElement.setAttribute('inputmode', 'text');
+
+        // Ensure the textarea can receive focus and input
+        textareaElement.setAttribute('aria-label', 'Terminal input');
+
+        // Auto-focus the terminal for immediate input
+        textareaElement.focus();
+      }
+    }, 100);
+
     // Handle data input
     xterm.onData((data) => {
       onData(data);
