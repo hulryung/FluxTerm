@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Terminal, useTerminal } from '../Terminal/Terminal';
 import { TerminalToolbar, type DisplayMode } from '../Terminal/TerminalToolbar';
 import { SearchBar } from '../Terminal/SearchBar';
@@ -114,36 +114,36 @@ export function SessionView({
     }
   }, [connected, autoReconnect, lastConfig, reconnectAttempts, sessionId]);
 
-  const handleTerminalData = (data: string) => {
+  const handleTerminalData = useCallback((data: string) => {
     if (connected) {
       wsClient.sendData(data);
     } else {
       console.warn('[SessionView] Not connected - input ignored:', data.charCodeAt(0));
     }
-  };
+  }, [connected]);
 
-  const handleTerminalResize = (cols: number, rows: number) => {
+  const handleTerminalResize = useCallback((cols: number, rows: number) => {
     if (connected) {
       wsClient.resizeTerminal(cols, rows);
     }
-  };
+  }, [connected]);
 
-  const handleClearDisplay = () => {
+  const handleClearDisplay = useCallback(() => {
     clear();
     hexViewer.clear();
-  };
+  }, [clear, hexViewer]);
 
-  const handleToggleSearch = () => {
+  const handleToggleSearch = useCallback(() => {
     setSearchVisible(!searchVisible);
     if (searchVisible) {
       clearSearch();
     }
-  };
+  }, [searchVisible, clearSearch]);
 
-  const handleSearchClose = () => {
+  const handleSearchClose = useCallback(() => {
     setSearchVisible(false);
     clearSearch();
-  };
+  }, [clearSearch]);
 
   return (
     <div

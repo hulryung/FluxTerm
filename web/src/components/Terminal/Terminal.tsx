@@ -14,6 +14,18 @@ export function Terminal({ onData, onResize }: TerminalProps) {
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
+  // Use refs to store latest callbacks without triggering re-renders
+  const onDataRef = useRef(onData);
+  const onResizeRef = useRef(onResize);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onDataRef.current = onData;
+  }, [onData]);
+
+  useEffect(() => {
+    onResizeRef.current = onResize;
+  }, [onResize]);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -51,7 +63,7 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     // xterm.js has built-in IME support via CompositionHelper
     // Just use onData - it already handles composition events correctly
     xterm.onData((data) => {
-      onData(data);
+      onDataRef.current(data);
     });
 
     // Ensure terminal textarea is focused for immediate input
@@ -65,8 +77,8 @@ export function Terminal({ onData, onResize }: TerminalProps) {
     // Handle resize
     const handleResize = () => {
       fitAddon.fit();
-      if (onResize) {
-        onResize(xterm.cols, xterm.rows);
+      if (onResizeRef.current) {
+        onResizeRef.current(xterm.cols, xterm.rows);
       }
     };
 
@@ -80,7 +92,8 @@ export function Terminal({ onData, onResize }: TerminalProps) {
       window.removeEventListener('resize', handleResize);
       xterm.dispose();
     };
-  }, [onData, onResize]);
+    // Empty deps - terminal is created only once per mount
+  }, []);
 
   // Expose terminal methods
   useEffect(() => {
